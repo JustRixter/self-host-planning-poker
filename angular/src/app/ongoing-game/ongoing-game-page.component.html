@@ -1,10 +1,10 @@
-<shpp-container>
+<shpp-container [themeToggle]="false">
   <ng-container navbar>
     <div class="d-flex flex-column flex-grow-1 min-w">
-      <shpp-game-name class="d-flex" />
-      <shpp-game-info class="d-flex" />
+      <shpp-game-name class="d-flex align-items-center min-w" />
+      <shpp-game-info class="d-flex align-items-center min-w" />
     </div>
-    <shpp-nav-player-info />
+    <shpp-nav-player-info class="flex-shrink-0" />
   </ng-container>
 
   <ng-container content>
@@ -12,10 +12,10 @@
       <div class="d-flex flex-column flex-grow-1 main-column">
         <shpp-card-table class="flex-grow-1" />
         @if (showSummary) {
-          <shpp-turn-summary class="bg-body-secondary" />
+          <shpp-turn-summary class="dock" />
         }
         @if (!showSummary) {
-          <shpp-card-picker class="bg-body-secondary" />
+          <shpp-card-picker class="dock" />
         }
       </div>
       <shpp-stories-panel class="stories-column" />

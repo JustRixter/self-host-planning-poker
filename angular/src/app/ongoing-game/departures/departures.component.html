@@ -1,0 +1,5 @@
+@if (shown.length > 0) {
+  <p class="departures-text" role="status" aria-live="polite" *transloco="let t; read 'departures'">
+    {{ t('left', { names: format(shown, extra > 0 ? t('more', { count: extra }) : undefined) }) }}
+  </p>
+}

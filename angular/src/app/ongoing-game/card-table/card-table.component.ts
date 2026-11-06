@@ -3,6 +3,7 @@ import { GameState } from '../../model/events';
 import { Subscription } from 'rxjs';
 import { Deck } from '../../model/deck';
 import { CurrentGameService } from '../current-game.service';
+import { DeparturesComponent } from '../departures/departures.component';
 import { PlayerHandComponent } from './player-hand/player-hand.component';
 import { KeyValuePipe } from '@angular/common';
 import { TranslocoDirective } from '@jsverse/transloco';
@@ -13,10 +14,12 @@ import { TranslocoDirective } from '@jsverse/transloco';
     styleUrls: ['./card-table.component.scss'],
     standalone: true,
     changeDetection: ChangeDetectionStrategy.Eager,
-    imports: [TranslocoDirective, PlayerHandComponent, KeyValuePipe]
+    imports: [TranslocoDirective, PlayerHandComponent, KeyValuePipe, DeparturesComponent]
 })
 export class CardTableComponent implements OnDestroy {
   state: GameState = {}
+  /** With many players the cards get smaller so that the table and the card picker both fit on screen */
+  compact = false;
   canReveal = true;
   deck?: Deck;
 
@@ -28,6 +31,7 @@ export class CardTableComponent implements OnDestroy {
     this.stateSubscription = this.currentGameService.state$
     .subscribe((state: GameState) => {
       this.state = state;
+      this.compact = Object.keys(state).length > 6;
     });
 
     this.deckSubscription = currentGameService.deck$

@@ -1,4 +1,27 @@
 :host {
+  position: relative;
   display: flex;
   flex-direction: column;
+  // A soft light on the table: it gives the cards something to stand out from
+  background: radial-gradient(ellipse 65% 75% at 50% 42%, var(--app-table-glow), transparent 72%);
+}
+
+// Below the buttons on small screens; on wide ones, in the free space to the right of the buttons
+.departures {
+  align-self: center;
+  width: min(24rem, 100% - 2rem);
+  margin-bottom: 1.25rem;
+
+  // Bootstrap's `xl` breakpoint
+  @media (min-width: 1200px) {
+    position: absolute;
+    right: 1.5rem;
+    bottom: 1.75rem;
+    width: 16rem;
+    margin: 0;
+  }
+
+  &:empty {
+    display: none;
+  }
 }
