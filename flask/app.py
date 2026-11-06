@@ -166,6 +166,14 @@ def set_final_estimate(data):
 
 
 @socketio.event
+def update_story(data):
+    game_id = session['game_id']
+
+    info = gm.update_story(game_id, data['index'], data.get('name'), data.get('estimate'))
+    emit('info', info, to=game_id, json=True)
+
+
+@socketio.event
 def reveal_cards():
     game_id = session['game_id']
 

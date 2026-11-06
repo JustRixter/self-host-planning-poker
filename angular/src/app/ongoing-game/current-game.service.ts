@@ -152,6 +152,10 @@ export class CurrentGameService {
     this.socket.emit('set_final_estimate', { estimate: estimate }, (response?: ErrorMessage) => this.handleError(response));
   }
 
+  public updateStory(index: number, changes: { name?: string; estimate?: number }): void {
+    this.socket.emit('update_story', { index: index, ...changes }, (response?: ErrorMessage) => this.handleError(response));
+  }
+
   public pickCard(cardValue: number | null): void {
     this.socket.emit('pick_card', { card: cardValue }, (response?: ErrorMessage) => this.handleError(response));
   }

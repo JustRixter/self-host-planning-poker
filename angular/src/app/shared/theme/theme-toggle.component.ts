@@ -8,7 +8,7 @@ import { ThemeService } from './theme.service';
   imports: [TranslocoDirective],
   changeDetection: ChangeDetectionStrategy.Eager,
   template: `
-    <button *transloco="let t; read 'theme'" type="button" class="btn btn-outline-light btn-sm ms-2"
+    <button *transloco="let t; read 'theme'" type="button" class="btn btn-outline-light btn-sm"
             [attr.aria-label]="t('toggle', { mode: t(theme.preference) })"
             [title]="t('toggle', { mode: t(theme.preference) })"
             (click)="theme.cycle()">

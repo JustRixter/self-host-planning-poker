@@ -93,6 +93,11 @@ class GameManager:
         game.set_final_estimate(estimate)
         return game.info()
 
+    def update_story(self, game_uuid: str, index: int, name=None, estimate=None) -> dict:
+        game = self.__get_ongoing_game(game_uuid)
+        game.update_story(index, name, estimate)
+        return game.info()
+
     def reveal_cards(self, game_uuid: str) -> tuple[dict, dict]:
         game = self.__get_ongoing_game(game_uuid)
         game.reveal_hands()

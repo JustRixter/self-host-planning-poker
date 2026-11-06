@@ -83,7 +83,8 @@
     "4004": "This game does not exist.",
     "4005": "The card you have picked is not an acceptable value of the current deck.",
     "4006": "You are a spectator, you should not be able to pick a card.",
-    "4007": "The cards must be revealed before you can choose the final estimate."
+    "4007": "The cards must be revealed before you can choose the final estimate.",
+    "4008": "This story does not exist."
   },
   "reconnect": {
     "attempt": "Lost connection. Attempting reconnection... ({{attempt}}/{{total}})",
@@ -115,6 +116,13 @@
     "empty": "No story estimated yet. Reveal the cards, then click “New turn” to record the result.",
     "unnamed": "Untitled story",
     "total": "Total",
-    "points": "{{count}} pts"
+    "points": "{{count}} pts",
+    "copyAll": "Copy all",
+    "copied": "Copied!",
+    "copyFailed": "Could not copy",
+    "storyHeader": "Story",
+    "estimateHeader": "Estimate",
+    "nameLabel": "Name of story {{number}}",
+    "estimateLabel": "Estimate of story {{number}}"
   }
 }

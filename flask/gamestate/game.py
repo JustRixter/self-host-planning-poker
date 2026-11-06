@@ -2,7 +2,8 @@ from collections import Counter
 from typing import Optional, Union
 
 from gamestate.deck import Deck
-from gamestate.exceptions import PlayerNotInGameError, InvalidCardValueError, GameNotRevealedError
+from gamestate.exceptions import PlayerNotInGameError, InvalidCardValueError, GameNotRevealedError, \
+    StoryDoesNotExistError
 from gamestate.player import Player
 
 MAX_STORY_NAME_LENGTH = 100
@@ -62,7 +63,23 @@ class Game:
         player.set_hand(card)
 
     def set_story_name(self, name: str) -> None:
-        self.__story = (name or '').strip()[:MAX_STORY_NAME_LENGTH]
+        self.__story = self.__clean_story_name(name)
+
+    @staticmethod
+    def __clean_story_name(name: Optional[str]) -> str:
+        return (name or '').strip()[:MAX_STORY_NAME_LENGTH]
+
+    def update_story(self, index: int, name: Optional[str] = None, estimate: Optional[float] = None) -> None:
+        """Edits the name and/or the estimate of an already estimated story"""
+        if not isinstance(index, int) or isinstance(index, bool) or not 0 <= index < len(self.__history):
+            raise StoryDoesNotExistError(f'Story {index} does not exist')
+        if estimate is not None and estimate not in self.__deck.value:
+            raise InvalidCardValueError(f'Card value {estimate} is not valid. Current deck is {self.__deck.name}')
+        entry = self.__history[index]
+        if name is not None:
+            entry['name'] = self.__clean_story_name(name)
+        if estimate is not None:
+            entry['estimate'] = self.__number(estimate)
 
     def get_story_name(self) -> str:
         return self.__story

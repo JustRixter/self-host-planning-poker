@@ -2,7 +2,7 @@ import unittest
 from unittest.mock import Mock
 
 from gamestate.deck import Deck
-from gamestate.exceptions import PlayerNotInGameError, InvalidCardValueError, GameNotRevealedError
+from gamestate.exceptions import PlayerNotInGameError, InvalidCardValueError, GameNotRevealedError, StoryDoesNotExistError
 from gamestate.game import Game, AUTO, SKIP
 from gamestate.player import Player
 
@@ -425,6 +425,32 @@ class GameTestCase(unittest.TestCase):
         game.set_deck(Deck.POWERS)
         self.assertEqual(game.get_history(), [])
         self.assertEqual(game.get_story_name(), '')
+
+    def test_update_story(self):
+        game = self._game_with_votes(Deck.FIBONACCI, 5)
+        for story in ('First', 'Second'):
+            game.set_story_name(story)
+            game.player_picks('p0', 5)
+            game.reveal_hands()
+            game.end_turn()
+        game.update_story(0, name='  Renamed  ')
+        game.update_story(1, estimate=13)
+        self.assertEqual(game.get_history(), [{'name': 'Renamed', 'estimate': 5}, {'name': 'Second', 'estimate': 13}])
+        self.assertEqual(game.get_total(), 18)
+        self.assertEqual(game.get_estimates(), {'5': 1, '13': 1})
+        game.update_story(0, name='', estimate=8)
+        self.assertEqual(game.get_history()[0], {'name': '', 'estimate': 8})
+
+    def test_update_story_validation(self):
+        game = self._game_with_votes(Deck.FIBONACCI, 5)
+        game.reveal_hands()
+        game.end_turn()
+        for index in (1, -1, 'x', None, True):
+            with self.assertRaises(StoryDoesNotExistError):
+                game.update_story(index, name='x')
+        with self.assertRaises(InvalidCardValueError):
+            game.update_story(0, estimate=4)
+        self.assertEqual(game.get_history(), [{'name': '', 'estimate': 5}])
 
 
 if __name__ == '__main__':

@@ -270,6 +270,19 @@ class GameManagerTestCase(unittest.TestCase):
         with self.assertRaises(GameNotOngoingError):
             gm.set_story_name('unknown-game', 'x')
 
+    def test_update_story(self):
+        gm = GameManager()
+        game_id = gm.create('Estimates')
+        gm.join_game(game_id, 'p1', 'Alice', False)
+        gm.pick_card(game_id, 'p1', 3)
+        gm.reveal_cards(game_id)
+        gm.end_turn(game_id)
+        info = gm.update_story(game_id, 0, 'Checkout', 8)
+        self.assertEqual(info['history'], [{'name': 'Checkout', 'estimate': 8}])
+        self.assertEqual(info['total'], 8)
+        with self.assertRaises(GameNotOngoingError):
+            gm.update_story('unknown-game', 0, 'x')
+
 
 if __name__ == '__main__':
     unittest.main()
