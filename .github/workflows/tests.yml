@@ -27,7 +27,8 @@ jobs:
           cd flask; pip install -r requirements.txt
       -
         name: Run tests
-        run: python -m unittest
+        # The tests are in flask/: from the root of the repository, unittest finds none ("NO TESTS RAN")
+        run: cd flask && python -m unittest discover -s test -t .
   frontend-tests:
     name: Front-end tests
     if: ${{ false }}  # Disabled as there are no tests
