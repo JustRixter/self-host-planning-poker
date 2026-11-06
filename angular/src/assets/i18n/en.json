@@ -101,7 +101,7 @@
     "title": "Stories",
     "summary": "{{count}} stories · {{points}} pts",
     "count": "{{count}} stories",
-    "empty": "No story estimated yet. Each time you reveal the cards, the estimate is added here.",
+    "empty": "Nothing here yet. Each time you reveal the cards, the estimate is added to this list.",
     "unnamed": "Story {{number}}",
     "total": "Total",
     "points": "{{count}} pts",

@@ -2,7 +2,7 @@
   @if (currentGameInfo) {
     <span class="text-muted ellipsis" *transloco="let n; read 'deckNames'">{{ n(currentGameInfo.deck) }}</span>
   }
-  <button class="btn btn-outline-light btn-sm mx-2"
+  <button class="btn btn-outline-secondary btn-sm mx-2"
     [attr.aria-label]="t('edit')"
     [ngbTooltip]="t('edit')"
     placement="bottom"

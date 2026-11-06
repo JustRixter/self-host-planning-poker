@@ -6,7 +6,7 @@
     </shpp-player-hand>
   }
 </div>
-<div class="d-flex justify-content-center flex-wrap gap-2 mb-4 px-3" *transloco="let t; read 'buttons'">
-  <button class="btn btn-primary" (click)="revealCards()" [disabled]="!canReveal" >{{ t('reveal') }}</button>
-  <button class="btn btn-primary" (click)="endTurn()" [disabled]="canReveal">{{ t('newTurn') }}</button>
+<div class="d-flex justify-content-center flex-wrap gap-2 mb-5 px-3" *transloco="let t; read 'buttons'">
+  <button class="btn px-4" [class.btn-primary]="canReveal" [class.btn-outline-secondary]="!canReveal" (click)="revealCards()" [disabled]="!canReveal">{{ t('reveal') }}</button>
+  <button class="btn px-4" [class.btn-primary]="!canReveal" [class.btn-outline-secondary]="canReveal" (click)="endTurn()" [disabled]="canReveal">{{ t('newTurn') }}</button>
 </div>

@@ -38,6 +38,7 @@
               }
             ],
             "styles": [
+              "node_modules/@fontsource-variable/geist/wght.css",
               "src/styles.scss"
             ],
             "stylePreprocessorOptions": {

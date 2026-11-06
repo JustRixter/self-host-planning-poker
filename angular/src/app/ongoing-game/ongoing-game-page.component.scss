@@ -4,17 +4,10 @@
   flex-direction: column;
 }
 
-.bg-body-secondary {
-  border-top: 1px solid var(--bs-gray-300);
-  box-shadow: 0 0 10px 0 var(--bs-gray-400);
-
-  :host-context([data-bs-theme='dark']) & {
-    border-top-color: var(--bs-gray-800) !important;
-    box-shadow: 0 0 10px 0 var(--bs-gray-800) !important;
-  }
-}
-
-shpp-turn-summary, shpp-card-picker {
+// The bottom area of the game: the card picker, then the summary of the votes
+.dock {
+  background: var(--app-surface);
+  border-top: 1px solid var(--bs-border-color);
   min-height: 250px;
 }
 
@@ -24,6 +17,7 @@ shpp-turn-summary, shpp-card-picker {
 
 .stories-column {
   display: block;
+  background: var(--app-surface);
   border-top: 1px solid var(--bs-border-color);
 
   // Bootstrap's `lg` breakpoint: show the list next to the game instead of below it

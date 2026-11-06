@@ -1,34 +1,46 @@
 /**
- * This is an example of overridden CSS to change the application from green to red.
+ * Example of an overridden CSS to change the application's accent color from green to red.
+ * Rename this file's content as needed: it is loaded after the application's styles.
+ * The tokens are defined for both themes, so redefine them for both.
  */
-/*:root {
-  --bs-primary: #621818;
-  --card-color: #d53434;
-  --navbar-bg-color: #e74646;
-  --navbar-border-bottom-color: #812020;
-  --navbar-text-color: white;
-  --navbar-muted-color: #424242;
+/*
+:root,
+[data-bs-theme='light'] {
+  --app-accent: #b91c1c;
+  --app-accent-hover: #991b1b;
+  --app-accent-soft: #fde4e4;
+  --app-accent-text: #991b1b;
+  --bs-primary: #b91c1c;
+  --bs-primary-rgb: 185, 28, 28;
+  --bs-link-color: #b91c1c;
+  --bs-link-color-rgb: 185, 28, 28;
 
   .btn-primary {
-    --bs-btn-bg: #d53434;
-    --bs-btn-border-color: #d53434;
-    --bs-btn-disabled-bg: #d26565;
-    --bs-btn-disabled-border-color: #d53434;
-    --bs-btn-hover-bg: #d26565;
-    --bs-btn-hover-border-color: #d53434;
+    --bs-btn-bg: #b91c1c;
+    --bs-btn-border-color: #b91c1c;
+    --bs-btn-hover-bg: #991b1b;
+    --bs-btn-hover-border-color: #991b1b;
+    --bs-btn-active-bg: #7f1d1d;
+    --bs-btn-active-border-color: #7f1d1d;
+    --bs-btn-disabled-bg: #b91c1c;
+    --bs-btn-disabled-border-color: #b91c1c;
   }
+}
 
-  .form-control:focus, .form-select:focus {
-    border-color: #d26565;
-    box-shadow: var(--bs-box-shadow-inset), 0 0 0 .25rem rgba(208, 133, 133, 0.3)
+[data-bs-theme='dark'] {
+  --app-accent: #f87171;
+  --app-accent-hover: #fca5a5;
+  --app-accent-soft: rgb(248 113 113 / .14);
+  --app-accent-text: #fca5a5;
+
+  .btn-primary {
+    --bs-btn-bg: #f87171;
+    --bs-btn-border-color: #f87171;
+    --bs-btn-hover-bg: #fca5a5;
+    --bs-btn-hover-border-color: #fca5a5;
   }
+}
 
-  .form-check-input:checked {
-    background-color: #d53434;
-    border-color: #d53434;
-  }
-
-  --bs-btn-close-focus-shadow: rgba(208, 133, 133, 0.8);
-  --bs-link-color: #d53434;
-  --bs-link-hover-color: #6b1919;
-}*/
+/* Only the color of the cards */
+:root { --card-color: #b91c1c; }
+*/

@@ -1,8 +1,8 @@
 <ng-container *transloco="let t; read 'navbar'">
   @if (currentGameInfo) {
-    <span class="fs-4 ellipsis">{{ currentGameInfo.name }}&nbsp;</span>
+    <span class="fs-5 fw-semibold ellipsis">{{ currentGameInfo.name }}&nbsp;</span>
     <div class="btn-group" role="group">
-      <button class="btn btn-outline-light btn-sm"
+      <button class="btn btn-outline-secondary btn-sm"
         *transloco="let t"
         [attr.aria-label]="t('buttons.link')"
         [ngbTooltip]="t('buttons.link')"
@@ -13,7 +13,7 @@
           <use xlink:href="assets/bootstrap-icons.svg#link-45deg"/>
         </svg>
       </button>
-      <button class="btn btn-outline-light btn-sm"
+      <button class="btn btn-outline-secondary btn-sm"
         *transloco="let t"
         [attr.aria-label]="t('buttons.qrcode')"
         [ngbTooltip]="t('buttons.qrcode')"

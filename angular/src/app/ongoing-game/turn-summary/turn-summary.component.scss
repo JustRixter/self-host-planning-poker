@@ -1,12 +1,13 @@
 .card-border {
-  height: 75px;
+  height: 76px;
+
   &.muted {
-    outline-color: var(--bs-gray-600);
-    outline-width: 2px;
-    outline-offset: -2px;
+    box-shadow: none;
+    border-color: var(--bs-border-color);
+    color: var(--bs-secondary-color);
   }
 }
 
 .card-value {
-  font-size: x-large;
+  font-size: 1.375rem;
 }

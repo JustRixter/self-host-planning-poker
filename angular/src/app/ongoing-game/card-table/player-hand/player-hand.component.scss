@@ -1,9 +1,7 @@
-.face-down {
-  background-color: var(--card-color);
-  outline-offset: -5px;
-  outline-color: white;
-}
-
-.dashed {
-  outline-style: dashed;
+.player-name {
+  max-width: 8rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-weight: 500;
 }
