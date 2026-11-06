@@ -4,13 +4,12 @@
       <shpp-game-name class="d-flex" />
       <shpp-game-info class="d-flex" />
     </div>
+    <shpp-nav-stories />
     <shpp-nav-player-info />
   </ng-container>
 
   <ng-container content>
     <shpp-card-table class="flex-grow-1" />
-    <shpp-story-name />
-    <shpp-estimates-summary />
     @if (showSummary) {
       <shpp-turn-summary class="bg-body-secondary" />
     }

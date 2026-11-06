@@ -7,11 +7,10 @@ import { CardPickerComponent } from './card-picker/card-picker.component';
 import { TurnSummaryComponent } from './turn-summary/turn-summary.component';
 
 import { CardTableComponent } from './card-table/card-table.component';
+import { NavStoriesComponent } from '../navigation-bar/stories/nav-stories.component';
 import { NavPlayerInfoComponent } from '../navigation-bar/player-info/nav-player-info.component';
 import { NavGameInfoComponent } from '../navigation-bar/game-info/nav-game-info.component';
 import { NavGameNameComponent } from '../navigation-bar/game-name/nav-game-name.component';
-import { StoryNameComponent } from './story-name/story-name.component';
-import { EstimatesSummaryComponent } from './estimates-summary/estimates-summary.component';
 import { ContainerComponent } from '../shared/container/container.component';
 
 @Component({
@@ -24,10 +23,9 @@ import { ContainerComponent } from '../shared/container/container.component';
     ContainerComponent,
     NavGameNameComponent,
     NavGameInfoComponent,
+    NavStoriesComponent,
     NavPlayerInfoComponent,
     CardTableComponent,
-    StoryNameComponent,
-    EstimatesSummaryComponent,
     TurnSummaryComponent,
     CardPickerComponent
 ]

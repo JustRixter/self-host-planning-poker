@@ -3,6 +3,7 @@ import { GameState } from '../../model/events';
 import { Subscription } from 'rxjs';
 import { Deck } from '../../model/deck';
 import { CurrentGameService } from '../current-game.service';
+import { StoryNameComponent } from '../story-name/story-name.component';
 import { PlayerHandComponent } from './player-hand/player-hand.component';
 import { KeyValuePipe } from '@angular/common';
 import { TranslocoDirective } from '@jsverse/transloco';
@@ -13,7 +14,7 @@ import { TranslocoDirective } from '@jsverse/transloco';
     styleUrls: ['./card-table.component.scss'],
     standalone: true,
     changeDetection: ChangeDetectionStrategy.Eager,
-    imports: [TranslocoDirective, PlayerHandComponent, KeyValuePipe]
+    imports: [TranslocoDirective, PlayerHandComponent, KeyValuePipe, StoryNameComponent]
 })
 export class CardTableComponent implements OnDestroy {
   state: GameState = {}

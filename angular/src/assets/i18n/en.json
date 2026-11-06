@@ -97,17 +97,9 @@
     "light": "light",
     "dark": "dark"
   },
-  "estimates": {
-    "title": "Stories per estimate",
-    "total": "{{count}} estimated",
-    "empty": "No stories estimated yet. Reveal the cards, then click “New turn” to record the result.",
-    "totalPoints": "Total: {{points}} points",
-    "history": "Show the {{count}} estimated stories",
-    "unnamed": "Untitled story {{number}}"
-  },
   "story": {
-    "label": "Story",
-    "placeholder": "Name of the story being estimated (optional)"
+    "label": "Story name",
+    "placeholder": "Story name (optional)"
   },
   "finalEstimate": {
     "label": "Record as:",
@@ -115,5 +107,14 @@
     "autoNone": "Most picked (no votes)",
     "skip": "Don't record",
     "autoPlain": "Most picked"
+  },
+  "stories": {
+    "title": "Estimated stories",
+    "open": "Estimated stories: {{count}}",
+    "close": "Close",
+    "empty": "No story estimated yet. Reveal the cards, then click “New turn” to record the result.",
+    "unnamed": "Untitled story",
+    "total": "Total",
+    "points": "{{count}} pts"
   }
 }

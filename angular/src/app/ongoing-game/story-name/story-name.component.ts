@@ -11,14 +11,13 @@ import { CurrentGameService } from '../current-game.service';
   imports: [TranslocoDirective, AsyncPipe],
   changeDetection: ChangeDetectionStrategy.Eager,
   template: `
-    <div class="container pb-3" *transloco="let t; read 'story'">
-      <input #input type="text" class="form-control form-control-sm mx-auto" style="max-width: 28rem" maxlength="100"
-             [attr.aria-label]="t('label')"
-             [placeholder]="t('placeholder')"
-             [value]="(story$ | async) ?? ''"
-             (change)="save(input.value)"
-             (keyup.enter)="input.blur()">
-    </div>
+    <input #input type="text" class="form-control form-control-sm" maxlength="100"
+           *transloco="let t; read 'story'"
+           [attr.aria-label]="t('label')"
+           [placeholder]="t('placeholder')"
+           [value]="(story$ | async) ?? ''"
+           (change)="save(input.value)"
+           (keyup.enter)="input.blur()">
   `
 })
 export class StoryNameComponent {

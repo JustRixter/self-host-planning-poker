@@ -24,9 +24,9 @@ It features:
   * Vote summary
   * Dark theme (follows your system by default, switchable from the navigation bar)
   * Story names: give the story being estimated a name, shared with all the players
-  * Stories per estimate: each time you finish a round with "New turn", the story's estimate is recorded and the totals
-    (number of stories per estimate and total points, except for T-shirt sizes) are shown on the game page, with the list of
-    the estimated stories. By default the most-picked card is recorded (the highest one on a tie), but once the cards are
+  * Estimated stories: each time you finish a round with "New turn", the story's estimate is recorded. The list of the
+    estimated stories with their estimates, and the total points (except for T-shirt sizes), is one click away in the
+    navigation bar. By default the most-picked card is recorded (the highest one on a tie), but once the cards are
     revealed anyone can pick another value or choose not to record the round. The history is kept in memory: it is reset
     when the deck is changed or the server restarts.
   * Translations _(inherited from the original project; new strings of this fork are English only and fall back to English)_
@@ -36,7 +36,7 @@ It does not have fancy features like issues management, Jira integration or time
 ## Screenshots
 <a href="assets/screenshot.png"><img alt="Application screenshot with cards face down" src="assets/screenshot.png" width="412px"></a>
 <a href="assets/screenshot-revealed.png"><img alt="Application screenshot with cards revealed" src="assets/screenshot-revealed.png" width="412px"></a>
-<a href="assets/screenshot-dark.png"><img alt="Application screenshot with the dark theme and a different final estimate chosen" src="assets/screenshot-dark.png" width="412px"></a>
+<a href="assets/screenshot-dark.png"><img alt="Application screenshot with the dark theme and the list of estimated stories" src="assets/screenshot-dark.png" width="412px"></a>
 
 ## Deployment
 
