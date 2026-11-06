@@ -1,0 +1,15 @@
+<ul class="list-unstyled mb-0" role="status" aria-live="polite" *transloco="let t; read 'departures'">
+  @for (departure of departures; track departure.id) {
+    <li class="departure">
+      <svg class="bi flex-shrink-0" width="1.125em" height="1.125em" fill="currentColor" aria-hidden="true">
+        <use xlink:href="assets/bootstrap-icons.svg#person-dash"/>
+      </svg>
+      <span class="ellipsis" [title]="t('left', { name: departure.name })">{{ t('left', { name: departure.name }) }}</span>
+      <button type="button" class="btn btn-icon dismiss" [attr.aria-label]="t('dismiss')" (click)="dismiss(departure.id)">
+        <svg class="bi" fill="currentColor" aria-hidden="true">
+          <use xlink:href="assets/bootstrap-icons.svg#x-lg"/>
+        </svg>
+      </button>
+    </li>
+  }
+</ul>

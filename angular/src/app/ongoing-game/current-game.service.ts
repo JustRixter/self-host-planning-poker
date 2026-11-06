@@ -25,6 +25,7 @@ export class CurrentGameService {
   private stateSubject = new BehaviorSubject<GameState>({});
   private infoSubject = new BehaviorSubject<GameInfo | null>(null);
   private newGameSubject = new Subject<void>();
+  private departuresSubject = new Subject<string>();
 
   constructor(private router: Router,
               private userInformation: UserInformationService,
@@ -44,7 +45,10 @@ export class CurrentGameService {
       ackTimeout: this.ackTimeoutMs
     });
 
-    this.socket.on('state', (state: GameState) => this.stateSubject.next(state));
+    this.socket.on('state', (state: GameState) => {
+      this.notifyDepartures(this.stateSubject.value, state);
+      this.stateSubject.next(state);
+    });
     this.socket.on('info', (info: GameInfo) => this.infoSubject.next(info));
     this.socket.on('new_game', () => this.newGameSubject.next());
 
@@ -85,6 +89,11 @@ export class CurrentGameService {
 
   public get gameInfo$(): Observable<GameInfo | null> {
     return this.infoSubject.asObservable();
+  }
+
+  /** Emits the name of each player who leaves the game while we are in it */
+  public get departures$(): Observable<string> {
+    return this.departuresSubject.asObservable();
   }
 
   public get newGame$(): Observable<void>{
@@ -128,6 +137,15 @@ export class CurrentGameService {
         this.handleError(reason);
         return this.router.parseUrl('/');
       });
+  }
+
+  private notifyDepartures(previous: GameState, current: GameState): void {
+    const currentNames = new Set(Object.values(current).map((player) => player.name));
+    Object.entries(previous)
+      .filter(([id]) => !(id in current))
+      // Someone who reloads the page comes back under a new id: that is not worth announcing
+      .filter(([, player]) => !currentNames.has(player.name))
+      .forEach(([, player]) => this.departuresSubject.next(player.name));
   }
 
   public leave(): void {

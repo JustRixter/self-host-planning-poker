@@ -1,0 +1,44 @@
+:host {
+  display: block;
+}
+
+ul {
+  display: flex;
+  flex-direction: column;
+  gap: .5rem;
+}
+
+.departure {
+  display: flex;
+  align-items: center;
+  gap: .5rem;
+  padding: .375rem .25rem .375rem .75rem;
+  max-width: 100%;
+  border: 1px solid var(--bs-border-color);
+  border-radius: var(--app-radius-control);
+  background: var(--app-surface);
+  box-shadow: var(--app-shadow);
+  color: var(--bs-secondary-color);
+  font-size: .8125rem;
+
+  @media (prefers-reduced-motion: no-preference) {
+    animation: departure-in 260ms var(--app-ease) both;
+  }
+}
+
+.dismiss {
+  width: 1.5rem;
+  height: 1.5rem;
+
+  .bi {
+    width: .75rem;
+    height: .75rem;
+  }
+}
+
+@keyframes departure-in {
+  from {
+    opacity: 0;
+    transform: translateX(.75rem);
+  }
+}

@@ -243,7 +243,7 @@ h1, h2, h3, h4, h5, h6, .fs-4, .fs-5 {
 // ---------------------------------------------------------------------------
 .card-border {
   aspect-ratio: 64 / 89;
-  height: 100px;
+  height: var(--card-height, 100px);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -299,7 +299,8 @@ h1, h2, h3, h4, h5, h6, .fs-4, .fs-5 {
 }
 
 .card-value {
-  font-size: 1.75rem;
+  // 1.75rem for the default 100px card
+  font-size: calc(var(--card-height, 100px) * .28);
   font-weight: 600;
   font-variant-numeric: tabular-nums;
   letter-spacing: -.02em;
@@ -327,4 +328,8 @@ h1, h2, h3, h4, h5, h6, .fs-4, .fs-5 {
   .btn {
     transition: none;
   }
+}
+
+.table-seats.compact {
+  --card-height: 76px;
 }

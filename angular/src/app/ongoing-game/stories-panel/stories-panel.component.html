@@ -4,7 +4,7 @@
       <h2 id="stories-title" class="fs-6 fw-semibold mb-0">{{ t('title') }}</h2>
       <span class="text-muted small tabular">
         @if (view.stories.length > 0) {
-          {{ t('count', { count: view.stories.length }) }}
+          {{ view.stories.length === 1 ? t('countOne') : t('count', { count: view.stories.length }) }}
         }
       </span>
     </div>

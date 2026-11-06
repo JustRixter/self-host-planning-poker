@@ -112,6 +112,11 @@
     "estimateHeader": "Estimate",
     "nameLabel": "Name of story {{number}}",
     "estimateLabel": "Estimate of story {{number}}",
-    "delete": "Delete story {{number}}"
+    "delete": "Delete story {{number}}",
+    "countOne": "1 story"
+  },
+  "departures": {
+    "left": "{{name}} left the game",
+    "dismiss": "Dismiss"
   }
 }

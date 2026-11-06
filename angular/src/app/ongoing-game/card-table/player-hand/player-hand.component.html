@@ -1,5 +1,5 @@
 @if (playerState) {
-  <div class="d-flex flex-column align-items-center m-2 m-sm-5">
+  <div class="d-flex flex-column align-items-center hand">
     <div class="card-border"
       [class.card-disabled]="playerState.spectator"
       [class.face-down]="playerState.hasPicked && playerState.hand === undefined"
