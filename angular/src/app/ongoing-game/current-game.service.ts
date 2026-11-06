@@ -10,6 +10,9 @@ import { UserInformationService } from '../shared/user-info/user-information.ser
 import { ToastService } from '../shared/toast/toast.service';
 import { PathLocationStrategy } from '@angular/common';
 
+/** reconnecting: the connection was lost and the client keeps trying. failed: it gave up, the page has to be reloaded */
+export type ConnectionState = 'connected' | 'reconnecting' | 'failed';
+
 @Injectable({
   providedIn: 'root'
 })
@@ -26,6 +29,7 @@ export class CurrentGameService {
   private infoSubject = new BehaviorSubject<GameInfo | null>(null);
   private newGameSubject = new Subject<void>();
   private departuresSubject = new Subject<string>();
+  private connectionSubject = new BehaviorSubject<ConnectionState>('connected');
 
   /** The game we are in: after a lost connection, we have to join it again */
   private gameId?: string;
@@ -67,25 +71,31 @@ export class CurrentGameService {
     });
 
     // A connection that comes back is a new connection for the server, which has removed us from the game
-    this.socket.on('connect', () => this.rejoin());
+    this.socket.on('connect', () => {
+      this.connectionSubject.next('connected');
+      this.rejoin();
+    });
 
     this.socket.on('disconnect', (reason) => {
-      if (reason !== 'io client disconnect') {
-        this.error('errors.disconnect', {reason: reason, delay: this.reconnectDelaySeconds});
-      }
       console.info(`Socket disconnected. Reason is "${reason}"`);
+      if (reason === 'io client disconnect') {
+        return; // we left the game on purpose
+      }
+      this.connectionSubject.next('reconnecting');
+      if (reason === 'io server disconnect') {
+        // The server closed the connection: the client does not try to reconnect by itself in that case
+        this.socket.connect();
+      }
     });
+    // No toasts for the state of the connection: the navigation bar shows an icon when there is a problem
     this.manager.on('reconnect_attempt', (attempt: number) => {
-      this.info('reconnect.attempt', { attempt: attempt, total: this.totalAttempts });
+      console.info(`Reconnection attempt ${attempt}/${this.totalAttempts}`);
+      this.connectionSubject.next('reconnecting');
     });
-    this.manager.on('reconnect_error', (err: Error) => {
-      this.error('reconnect.error', { error: err.message });
-    });
+    this.manager.on('reconnect_error', (err: Error) => console.warn(`Could not reconnect: ${err.message}`));
     this.manager.on('reconnect_failed', () => {
-      this.error('reconnect.failed', { attempts: this.totalAttempts });
-    });
-    this.manager.on('reconnect', (attempt: number) => {
-      this.success('reconnect.success', { attempts: attempt });
+      console.error(`Could not reconnect after ${this.totalAttempts} attempts`);
+      this.connectionSubject.next('failed');
     });
 
     this.userInformation.nameObservable().subscribe((name: string) => {
@@ -107,6 +117,11 @@ export class CurrentGameService {
 
   public get gameInfo$(): Observable<GameInfo | null> {
     return this.infoSubject.asObservable();
+  }
+
+  /** The state of the connection to the server, while we are in a game */
+  public get connection$(): Observable<ConnectionState> {
+    return this.connectionSubject.asObservable();
   }
 
   /** Emits the name of each player who leaves the game while we are in it */
@@ -197,6 +212,7 @@ export class CurrentGameService {
   }
 
   public leave(): void {
+    this.connectionSubject.next('connected');
     this.gameId = undefined;
     this.lastPick = null;
     this.socket.disconnect();
@@ -241,20 +257,6 @@ export class CurrentGameService {
         this.error(`errors.0`, { message: error });
       }
     }
-  }
-
-  private info(key: string, translateParams?: Record<string, unknown>): void {
-    this.transloco.selectTranslate(key, translateParams).subscribe((text) => {
-      console.info(text);
-      this.toastService.show(text, { className: 'bg-info' });
-    })
-  }
-
-  private success(key: string, translateParams?: Record<string, unknown>): void {
-    this.transloco.selectTranslate(key, translateParams).subscribe((text) => {
-      console.info(text);
-      this.toastService.show(text, { className: 'bg-success text-light' });
-    });
   }
 
   private error(key: string, translateParams?: Record<string, unknown>): void {
