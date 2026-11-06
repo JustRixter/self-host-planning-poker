@@ -2,7 +2,7 @@ import { inject, Injectable } from '@angular/core';
 import { Manager, Socket } from 'socket.io-client';
 import { environment } from '../../environments/environment';
 import { BehaviorSubject, filter, map, Observable, Subject } from 'rxjs';
-import { ErrorMessage, FinalEstimateChoice, GameInfo, GameState } from '../model/events';
+import { ErrorMessage, GameInfo, GameState } from '../model/events';
 import { Deck, decksDict } from '../model/deck';
 import { ActivatedRouteSnapshot, CanActivateFn, Router, UrlTree } from '@angular/router';
 import { TranslocoService } from '@jsverse/transloco';
@@ -144,16 +144,12 @@ export class CurrentGameService {
     this.socket.emit('set_deck', { deck: deck.name }, (response?: ErrorMessage) => this.handleError(response));
   }
 
-  public setStoryName(name: string): void {
-    this.socket.emit('set_story_name', { name: name }, (response?: ErrorMessage) => this.handleError(response));
+  public updateStory(id: number, changes: { name?: string; estimate?: number }): void {
+    this.socket.emit('update_story', { id: id, ...changes }, (response?: ErrorMessage) => this.handleError(response));
   }
 
-  public setFinalEstimate(estimate: FinalEstimateChoice): void {
-    this.socket.emit('set_final_estimate', { estimate: estimate }, (response?: ErrorMessage) => this.handleError(response));
-  }
-
-  public updateStory(index: number, changes: { name?: string; estimate?: number }): void {
-    this.socket.emit('update_story', { index: index, ...changes }, (response?: ErrorMessage) => this.handleError(response));
+  public deleteStory(id: number): void {
+    this.socket.emit('delete_story', { id: id }, (response?: ErrorMessage) => this.handleError(response));
   }
 
   public pickCard(cardValue: number | null): void {

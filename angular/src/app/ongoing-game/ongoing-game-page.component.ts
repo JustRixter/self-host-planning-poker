@@ -7,7 +7,7 @@ import { CardPickerComponent } from './card-picker/card-picker.component';
 import { TurnSummaryComponent } from './turn-summary/turn-summary.component';
 
 import { CardTableComponent } from './card-table/card-table.component';
-import { NavStoriesComponent } from '../navigation-bar/stories/nav-stories.component';
+import { StoriesPanelComponent } from './stories-panel/stories-panel.component';
 import { NavPlayerInfoComponent } from '../navigation-bar/player-info/nav-player-info.component';
 import { NavGameInfoComponent } from '../navigation-bar/game-info/nav-game-info.component';
 import { NavGameNameComponent } from '../navigation-bar/game-name/nav-game-name.component';
@@ -23,7 +23,7 @@ import { ContainerComponent } from '../shared/container/container.component';
     ContainerComponent,
     NavGameNameComponent,
     NavGameInfoComponent,
-    NavStoriesComponent,
+    StoriesPanelComponent,
     NavPlayerInfoComponent,
     CardTableComponent,
     TurnSummaryComponent,

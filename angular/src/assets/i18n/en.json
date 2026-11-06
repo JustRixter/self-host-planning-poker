@@ -83,7 +83,6 @@
     "4004": "This game does not exist.",
     "4005": "The card you have picked is not an acceptable value of the current deck.",
     "4006": "You are a spectator, you should not be able to pick a card.",
-    "4007": "The cards must be revealed before you can choose the final estimate.",
     "4008": "This story does not exist."
   },
   "reconnect": {
@@ -98,23 +97,12 @@
     "light": "light",
     "dark": "dark"
   },
-  "story": {
-    "label": "Story name",
-    "placeholder": "Story name (optional)"
-  },
-  "finalEstimate": {
-    "label": "Record as:",
-    "auto": "Most picked ({{value}})",
-    "autoNone": "Most picked (no votes)",
-    "skip": "Don't record",
-    "autoPlain": "Most picked"
-  },
   "stories": {
-    "title": "Estimated stories",
-    "open": "Estimated stories: {{count}}",
-    "close": "Close",
-    "empty": "No story estimated yet. Reveal the cards, then click “New turn” to record the result.",
-    "unnamed": "Untitled story",
+    "title": "Stories",
+    "summary": "{{count}} stories · {{points}} pts",
+    "count": "{{count}} stories",
+    "empty": "No story estimated yet. Each time you reveal the cards, the estimate is added here.",
+    "unnamed": "Story {{number}}",
     "total": "Total",
     "points": "{{count}} pts",
     "copyAll": "Copy all",
@@ -123,6 +111,7 @@
     "storyHeader": "Story",
     "estimateHeader": "Estimate",
     "nameLabel": "Name of story {{number}}",
-    "estimateLabel": "Estimate of story {{number}}"
+    "estimateLabel": "Estimate of story {{number}}",
+    "delete": "Delete story {{number}}"
   }
 }

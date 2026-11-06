@@ -148,28 +148,18 @@ def pick_card(data):
 
 
 @socketio.event
-def set_story_name(data):
-    game_id = session['game_id']
-    story_name = data['name']
-
-    info = gm.set_story_name(game_id, story_name)
-    emit('info', info, to=game_id, json=True)
-
-
-@socketio.event
-def set_final_estimate(data):
-    game_id = session['game_id']
-    estimate = data['estimate']
-
-    info = gm.set_final_estimate(game_id, estimate)
-    emit('info', info, to=game_id, json=True)
-
-
-@socketio.event
 def update_story(data):
     game_id = session['game_id']
 
-    info = gm.update_story(game_id, data['index'], data.get('name'), data.get('estimate'))
+    info = gm.update_story(game_id, data['id'], data.get('name'), data.get('estimate'))
+    emit('info', info, to=game_id, json=True)
+
+
+@socketio.event
+def delete_story(data):
+    game_id = session['game_id']
+
+    info = gm.delete_story(game_id, data['id'])
     emit('info', info, to=game_id, json=True)
 
 

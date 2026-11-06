@@ -2,15 +2,12 @@ import unittest
 from unittest.mock import Mock
 
 from gamestate.deck import Deck
-from gamestate.exceptions import PlayerNotInGameError, InvalidCardValueError, GameNotRevealedError, StoryDoesNotExistError
-from gamestate.game import Game, AUTO, SKIP
+from gamestate.exceptions import PlayerNotInGameError, InvalidCardValueError, StoryDoesNotExistError
+from gamestate.game import Game
 from gamestate.player import Player
 
 
-EMPTY_INFO = {
-    'story': '', 'estimates': {}, 'history': [], 'total': 0,
-    'finalEstimate': {'mode': 'auto', 'value': None}
-}
+EMPTY_INFO = {'history': [], 'total': 0}
 
 
 class GameTestCase(unittest.TestCase):
@@ -314,7 +311,7 @@ class GameTestCase(unittest.TestCase):
         game2.end_turn()
         self.assertEqual(game2.info(), {'name': game_name2, 'deck': 'POWERS', 'revealed': False, **EMPTY_INFO})
 
-    def _game_with_votes(self, deck, *hands, spectator_hand=None):
+    def _game_with_votes(self, deck, *hands):
         game = Game('Estimates', deck)
         for i, hand in enumerate(hands):
             game.player_joins(f'p{i}', Player(f'P{i}', False))
@@ -322,57 +319,52 @@ class GameTestCase(unittest.TestCase):
                 game.player_picks(f'p{i}', hand)
         return game
 
-    def test_estimates_recorded_on_end_turn(self):
+    def test_reveal_records_the_most_picked_card(self):
         game = self._game_with_votes(Deck.FIBONACCI, 5, 5, 8)
+        self.assertEqual(game.get_history(), [])
         game.reveal_hands()
-        game.end_turn()
-        self.assertEqual(game.get_estimates(), {'5': 1})
-        for pid, card in (('p0', 3), ('p1', 3), ('p2', 5)):
-            game.player_picks(pid, card)
-        game.reveal_hands()
-        game.end_turn()
-        game.reveal_hands()  # nobody voted: nothing recorded
-        game.end_turn()
-        self.assertEqual(game.get_estimates(), {'3': 1, '5': 1})
+        self.assertEqual(game.get_history(), [{'id': 1, 'name': '', 'estimate': 5}])
+        self.assertEqual(game.get_total(), 5)
 
-    def test_estimates_tie_picks_highest(self):
-        game = self._game_with_votes(Deck.MODIFIED_FIBONACCI, 0.5, 3)
-        game.reveal_hands()
-        game.end_turn()
-        self.assertEqual(game.get_estimates(), {'3': 1})
-
-    def test_estimates_not_recorded_without_reveal(self):
-        game = self._game_with_votes(Deck.FIBONACCI, 5, 5)
-        game.end_turn()
-        self.assertEqual(game.get_estimates(), {})
-
-    def test_estimates_reset_when_deck_changes(self):
+    def test_revealing_twice_records_once(self):
         game = self._game_with_votes(Deck.FIBONACCI, 5)
         game.reveal_hands()
-        game.end_turn()
-        game.set_deck(Deck.FIBONACCI)
-        self.assertEqual(game.get_estimates(), {'5': 1})
-        game.set_deck(Deck.POWERS)
-        self.assertEqual(game.get_estimates(), {})
+        game.reveal_hands()
+        self.assertEqual(len(game.get_history()), 1)
 
-    def test_story_names_and_history(self):
+    def test_every_revealed_turn_is_recorded(self):
         game = self._game_with_votes(Deck.FIBONACCI, 5, 5)
-        game.set_story_name('  Login page  ')
-        self.assertEqual(game.get_story_name(), 'Login page')
-        game.reveal_hands()
-        game.end_turn()
-        self.assertEqual(game.get_story_name(), '')
-        for pid in ('p0', 'p1'):
-            game.player_picks(pid, 8)
-        game.reveal_hands()
-        game.end_turn()
-        self.assertEqual(game.get_history(), [{'name': 'Login page', 'estimate': 5}, {'name': '', 'estimate': 8}])
-        self.assertEqual(game.get_total(), 13)
+        for card in (5, 8, 8):
+            for pid in ('p0', 'p1'):
+                game.player_picks(pid, card)
+            game.reveal_hands()
+            game.end_turn()
+        self.assertEqual([entry['estimate'] for entry in game.get_history()], [5, 8, 8])
+        self.assertEqual([entry['id'] for entry in game.get_history()], [1, 2, 3])
+        self.assertEqual(game.get_total(), 21)
 
-    def test_story_name_is_truncated(self):
-        game = Game('Estimates')
-        game.set_story_name('x' * 500)
-        self.assertEqual(len(game.get_story_name()), 100)
+    def test_tie_records_the_highest_card(self):
+        game = self._game_with_votes(Deck.MODIFIED_FIBONACCI, 0.5, 3)
+        game.reveal_hands()
+        self.assertEqual(game.get_history()[0]['estimate'], 3)
+
+    def test_spectators_and_missing_votes_are_ignored(self):
+        game = self._game_with_votes(Deck.FIBONACCI, 3, None)
+        game.player_joins('spectator', Player('Spectator', True))
+        game.reveal_hands()
+        self.assertEqual(game.get_history()[0]['estimate'], 3)
+
+    def test_nothing_is_recorded_when_nobody_voted(self):
+        game = self._game_with_votes(Deck.FIBONACCI, None, None)
+        game.reveal_hands()
+        game.end_turn()
+        self.assertEqual(game.get_history(), [])
+        self.assertEqual(game.get_total(), 0)
+
+    def test_ending_a_turn_without_reveal_records_nothing(self):
+        game = self._game_with_votes(Deck.FIBONACCI, 5)
+        game.end_turn()
+        self.assertEqual(game.get_history(), [])
 
     def test_total_with_decimals(self):
         game = self._game_with_votes(Deck.MODIFIED_FIBONACCI, 0.5)
@@ -381,76 +373,60 @@ class GameTestCase(unittest.TestCase):
             game.reveal_hands()
             game.end_turn()
         self.assertEqual(game.get_total(), 1.5)
-        self.assertEqual(game.get_estimates(), {'0.5': 3})
-
-    def test_final_estimate_override(self):
-        game = self._game_with_votes(Deck.FIBONACCI, 3, 13)
-        game.reveal_hands()
-        self.assertEqual(game.info()['finalEstimate'], {'mode': 'auto', 'value': 13})
-        game.set_final_estimate(5)
-        self.assertEqual(game.info()['finalEstimate'], {'mode': 'value', 'value': 5})
-        game.end_turn()
-        self.assertEqual(game.get_history(), [{'name': '', 'estimate': 5}])
-        self.assertEqual(game.info()['finalEstimate'], {'mode': 'auto', 'value': None})
-
-    def test_final_estimate_skip(self):
-        game = self._game_with_votes(Deck.FIBONACCI, 3, 3)
-        game.reveal_hands()
-        game.set_final_estimate(SKIP)
-        self.assertEqual(game.info()['finalEstimate'], {'mode': 'skip', 'value': None})
-        game.end_turn()
-        self.assertEqual(game.get_history(), [])
-        # ...and the next turn goes back to the automatic estimate
-        game.player_picks('p0', 3)
-        game.reveal_hands()
-        game.set_final_estimate(AUTO)
-        game.end_turn()
-        self.assertEqual(game.get_estimates(), {'3': 1})
-
-    def test_final_estimate_validation(self):
-        game = self._game_with_votes(Deck.FIBONACCI, 3)
-        with self.assertRaises(GameNotRevealedError):
-            game.set_final_estimate(3)
-        game.reveal_hands()
-        with self.assertRaises(InvalidCardValueError):
-            game.set_final_estimate(4)
-        with self.assertRaises(InvalidCardValueError):
-            game.set_final_estimate('whatever')
-
-    def test_deck_change_clears_history_and_story(self):
-        game = self._game_with_votes(Deck.FIBONACCI, 5)
-        game.reveal_hands()
-        game.end_turn()
-        game.set_story_name('Old deck story')
-        game.set_deck(Deck.POWERS)
-        self.assertEqual(game.get_history(), [])
-        self.assertEqual(game.get_story_name(), '')
 
     def test_update_story(self):
         game = self._game_with_votes(Deck.FIBONACCI, 5)
-        for story in ('First', 'Second'):
-            game.set_story_name(story)
-            game.player_picks('p0', 5)
+        for _ in range(2):
             game.reveal_hands()
             game.end_turn()
-        game.update_story(0, name='  Renamed  ')
-        game.update_story(1, estimate=13)
-        self.assertEqual(game.get_history(), [{'name': 'Renamed', 'estimate': 5}, {'name': 'Second', 'estimate': 13}])
+            game.player_picks('p0', 5)
+        game.update_story(1, name='  Renamed  ')
+        game.update_story(2, estimate=13)
+        self.assertEqual(game.get_history(), [{'id': 1, 'name': 'Renamed', 'estimate': 5}, {'id': 2, 'name': '', 'estimate': 13}])
         self.assertEqual(game.get_total(), 18)
-        self.assertEqual(game.get_estimates(), {'5': 1, '13': 1})
-        game.update_story(0, name='', estimate=8)
-        self.assertEqual(game.get_history()[0], {'name': '', 'estimate': 8})
+        game.update_story(1, name='', estimate=8)
+        self.assertEqual(game.get_history()[0], {'id': 1, 'name': '', 'estimate': 8})
+
+    def test_update_story_truncates_the_name(self):
+        game = self._game_with_votes(Deck.FIBONACCI, 5)
+        game.reveal_hands()
+        game.update_story(1, name='x' * 500)
+        self.assertEqual(len(game.get_history()[0]['name']), 100)
 
     def test_update_story_validation(self):
         game = self._game_with_votes(Deck.FIBONACCI, 5)
         game.reveal_hands()
-        game.end_turn()
-        for index in (1, -1, 'x', None, True):
+        for story_id in (0, 2, -1, 'x', None, True):
             with self.assertRaises(StoryDoesNotExistError):
-                game.update_story(index, name='x')
+                game.update_story(story_id, name='x')
         with self.assertRaises(InvalidCardValueError):
-            game.update_story(0, estimate=4)
-        self.assertEqual(game.get_history(), [{'name': '', 'estimate': 5}])
+            game.update_story(1, estimate=4)
+        self.assertEqual(game.get_history(), [{'id': 1, 'name': '', 'estimate': 5}])
+
+    def test_delete_story_keeps_the_ids_of_the_others(self):
+        game = self._game_with_votes(Deck.FIBONACCI, 5)
+        for _ in range(3):
+            game.reveal_hands()
+            game.end_turn()
+            game.player_picks('p0', 5)
+        game.delete_story(2)
+        self.assertEqual([entry['id'] for entry in game.get_history()], [1, 3])
+        game.update_story(3, name='Still the third one')
+        self.assertEqual(game.get_history()[1]['name'], 'Still the third one')
+        with self.assertRaises(StoryDoesNotExistError):
+            game.delete_story(2)
+        game.reveal_hands()
+        game.end_turn()
+        # ids are never reused
+        self.assertEqual([entry['id'] for entry in game.get_history()], [1, 3, 4])
+
+    def test_deck_change_clears_the_history(self):
+        game = self._game_with_votes(Deck.FIBONACCI, 5)
+        game.reveal_hands()
+        game.set_deck(Deck.FIBONACCI)
+        self.assertEqual(len(game.get_history()), 1)
+        game.set_deck(Deck.POWERS)
+        self.assertEqual(game.get_history(), [])
 
 
 if __name__ == '__main__':

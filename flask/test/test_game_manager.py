@@ -253,35 +253,23 @@ class GameManagerTestCase(unittest.TestCase):
             gm.end_turn('uuid2')
         self.assertEqual(str(ex.exception), 'Game uuid2 is not ongoing')
 
-    def test_story_name_and_final_estimate(self):
+    def test_reveal_records_the_story_which_can_then_be_edited_and_deleted(self):
         gm = GameManager()
         game_id = gm.create('Estimates')
         gm.join_game(game_id, 'p1', 'Alice', False)
         gm.join_game(game_id, 'p2', 'Bob', False)
-        self.assertEqual(gm.set_story_name(game_id, 'Checkout')['story'], 'Checkout')
         gm.pick_card(game_id, 'p1', 3)
-        gm.pick_card(game_id, 'p2', 13)
-        gm.reveal_cards(game_id)
-        info = gm.set_final_estimate(game_id, 5)
-        self.assertEqual(info['finalEstimate'], {'mode': 'value', 'value': 5})
-        _, info = gm.end_turn(game_id)
-        self.assertEqual(info['history'], [{'name': 'Checkout', 'estimate': 5}])
-        self.assertEqual(info['total'], 5)
-        with self.assertRaises(GameNotOngoingError):
-            gm.set_story_name('unknown-game', 'x')
-
-    def test_update_story(self):
-        gm = GameManager()
-        game_id = gm.create('Estimates')
-        gm.join_game(game_id, 'p1', 'Alice', False)
-        gm.pick_card(game_id, 'p1', 3)
-        gm.reveal_cards(game_id)
-        gm.end_turn(game_id)
-        info = gm.update_story(game_id, 0, 'Checkout', 8)
-        self.assertEqual(info['history'], [{'name': 'Checkout', 'estimate': 8}])
+        gm.pick_card(game_id, 'p2', 3)
+        _, info = gm.reveal_cards(game_id)
+        self.assertEqual(info['history'], [{'id': 1, 'name': '', 'estimate': 3}])
+        info = gm.update_story(game_id, 1, 'Checkout', 8)
+        self.assertEqual(info['history'], [{'id': 1, 'name': 'Checkout', 'estimate': 8}])
         self.assertEqual(info['total'], 8)
-        with self.assertRaises(GameNotOngoingError):
-            gm.update_story('unknown-game', 0, 'x')
+        info = gm.delete_story(game_id, 1)
+        self.assertEqual(info['history'], [])
+        for action in (lambda: gm.update_story('unknown-game', 1, 'x'), lambda: gm.delete_story('unknown-game', 1)):
+            with self.assertRaises(GameNotOngoingError):
+                action()
 
 
 if __name__ == '__main__':

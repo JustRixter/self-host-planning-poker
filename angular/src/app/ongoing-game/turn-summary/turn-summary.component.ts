@@ -1,5 +1,5 @@
 import { AfterViewInit, Component, ElementRef, OnDestroy, ViewChild, ChangeDetectionStrategy } from '@angular/core';
-import { FinalEstimate, FinalEstimateChoice, PlayerState } from '../../model/events';
+import { PlayerState } from '../../model/events';
 import { filter, map, Observable, Subscription, tap, withLatestFrom } from 'rxjs';
 import { Deck, decksDict, displayCardValue } from '../../model/deck';
 import { AsyncPipe, KeyValue, KeyValuePipe, NgClass } from '@angular/common';
@@ -29,7 +29,6 @@ export class TurnSummaryComponent implements AfterViewInit, OnDestroy {
   average = 0;
   agreement = 0;
   $counts: Observable<CardCount>;
-  finalEstimate$: Observable<FinalEstimate | undefined>;
   private $playerStates: Observable<PlayerState[]>;
   private $agreement: Observable<number>;
 
@@ -49,8 +48,6 @@ export class TurnSummaryComponent implements AfterViewInit, OnDestroy {
       map(([gameState]) => Object.values(gameState)),
       map((playerStates: PlayerState[]) => playerStates.filter((state) => state.hand !== undefined && state.hand !== null))
     );
-
-    this.finalEstimate$ = this.currentGameService.gameInfo$.pipe(map((info) => info?.finalEstimate));
 
     this.$counts = this.$playerStates
     .pipe(map((players: PlayerState[]) =>
@@ -96,11 +93,6 @@ export class TurnSummaryComponent implements AfterViewInit, OnDestroy {
     } else {
       return 'text-success';
     }
-  }
-
-  onFinalEstimateChange(value: string): void {
-    const choice: FinalEstimateChoice = value === 'auto' || value === 'skip' ? value : Number(value);
-    this.currentGameService.setFinalEstimate(choice);
   }
 
   ngOnDestroy(): void {

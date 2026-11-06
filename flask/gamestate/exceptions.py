@@ -26,9 +26,5 @@ class SpectatorCannotPlayError(PlanningPokerException):
     code = 4006
 
 
-class GameNotRevealedError(PlanningPokerException):
-    code = 4007
-
-
 class StoryDoesNotExistError(PlanningPokerException):
     code = 4008

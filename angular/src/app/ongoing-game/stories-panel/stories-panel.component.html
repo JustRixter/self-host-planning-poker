@@ -1,0 +1,59 @@
+<section class="d-flex flex-column p-3 stories" *transloco="let t; read 'stories'" aria-labelledby="stories-title">
+  @if (view$ | async; as view) {
+    <div class="d-flex justify-content-between align-items-baseline mb-2">
+      <h2 id="stories-title" class="fs-6 mb-0">{{ t('title') }}</h2>
+      <span class="text-muted small">
+        @if (view.stories.length > 0) {
+          {{ view.showPoints ? t('summary', { count: view.stories.length, points: view.total }) : t('count', { count: view.stories.length }) }}
+        }
+      </span>
+    </div>
+
+    @if (view.stories.length === 0) {
+      <p class="text-muted small mb-0">{{ t('empty') }}</p>
+    } @else {
+      <ol class="list-unstyled mb-3 story-list">
+        @for (story of view.stories; track story.id; let i = $index) {
+          <li class="d-flex align-items-center gap-1 py-1">
+            <span class="text-muted text-end flex-shrink-0 index">{{ i + 1 }}.</span>
+            <input type="text" class="form-control form-control-sm" maxlength="100"
+                   [attr.aria-label]="t('nameLabel', { number: i + 1 })"
+                   [placeholder]="t('unnamed', { number: i + 1 })"
+                   [value]="story.name"
+                   (change)="rename(story.id, $any($event.target).value)"
+                   (keyup.enter)="$any($event.target).blur()">
+            <select class="form-select form-select-sm w-auto fw-bold flex-shrink-0"
+                    [attr.aria-label]="t('estimateLabel', { number: i + 1 })"
+                    (change)="setEstimate(story.id, $any($event.target).value)">
+              @for (card of view.cards; track card.value) {
+                <option [value]="card.value" [selected]="card.value === story.estimate">{{ card.display }}</option>
+              }
+            </select>
+            <button type="button" class="btn btn-sm btn-outline-secondary border-0 flex-shrink-0"
+                    [attr.aria-label]="t('delete', { number: i + 1 })"
+                    (click)="remove(story.id)">
+              <svg class="bi" width="1em" height="1em" fill="currentColor" aria-hidden="true">
+                <use xlink:href="assets/bootstrap-icons.svg#trash"/>
+              </svg>
+            </button>
+          </li>
+        }
+      </ol>
+      <div class="mt-auto d-flex justify-content-between align-items-center border-top pt-3">
+        <span class="fw-bold">
+          @if (view.showPoints) {
+            {{ t('total') }}: {{ t('points', { count: view.total }) }}
+          }
+        </span>
+        <button type="button" class="btn btn-sm btn-outline-secondary" (click)="copyAll(view.stories)">
+          <svg class="bi" width="1em" height="1em" fill="currentColor" aria-hidden="true">
+            <use [attr.xlink:href]="'assets/bootstrap-icons.svg#' + (copyState === 'copied' ? 'clipboard-check' : 'clipboard')"/>
+          </svg>
+          <span class="ms-1">{{
+            copyState === 'copied' ? t('copied') : copyState === 'failed' ? t('copyFailed') : t('copyAll')
+          }}</span>
+        </button>
+      </div>
+    }
+  }
+</section>

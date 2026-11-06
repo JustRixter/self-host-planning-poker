@@ -31,25 +31,4 @@
       }}</p>
     </div>
   </div>
-  <div class="row justify-content-center mt-3" *transloco="let f; read 'finalEstimate'">
-    @if (finalEstimate$ | async; as final) {
-      <div class="col-auto d-flex align-items-center">
-        <label for="final-estimate" class="text-muted me-2">{{ f('label') }}</label>
-        <select id="final-estimate" class="form-select form-select-sm w-auto"
-          (change)="onFinalEstimateChange($any($event.target).value)">
-          <option value="auto" [selected]="final.mode === 'auto'">
-            {{
-            final.mode !== 'auto' ? f('autoPlain')
-            : final.value === null ? f('autoNone')
-            : f('auto', { value: displayCardValue(deck, final.value) })
-            }}
-          </option>
-          @for (card of deck.values; track card.value) {
-            <option [value]="card.value" [selected]="final.mode === 'value' && final.value === card.value">{{ card.display }}</option>
-          }
-          <option value="skip" [selected]="final.mode === 'skip'">{{ f('skip') }}</option>
-        </select>
-      </div>
-    }
-  </div>
 </div>

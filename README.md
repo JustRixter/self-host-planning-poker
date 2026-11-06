@@ -24,12 +24,12 @@ It features:
   * Vote summary
   * Dark theme (follows your system by default, switchable from the navigation bar)
   * Story names: give the story being estimated a name, shared with all the players
-  * Estimated stories: each time you finish a round with "New turn", the story's estimate is recorded. The list of the
-    estimated stories with their estimates, and the total points (except for T-shirt sizes), is one click away in the
-    navigation bar. By default the most-picked card is recorded (the highest one on a tie), but once the cards are
-    revealed anyone can pick another value or choose not to record the round. In the list, the name and the estimate of
-    every story can be edited, and "Copy all" copies it as a table (tab-separated text and HTML) to paste in a
-    spreadsheet or a document. The history is kept in memory: it is reset when the deck is changed or the server restarts.
+  * Estimated stories: a list that is always visible next to the game (below it on small screens). A story is added to it
+    each time the cards are revealed, with the most-picked card as its estimate (the highest one on a tie). Use it to
+    give the story a name, fix its estimate or delete it (for instance when the team votes again after a discussion).
+    It also shows the total points (except for T-shirt sizes), and "Copy all" copies the list as a table (tab-separated
+    text and HTML) to paste in a spreadsheet or a document. The list is kept in memory: it is reset when the deck is
+    changed or the server restarts.
   * Translations _(inherited from the original project; new strings of this fork are English only and fall back to English)_
  
 It does not have fancy features like issues management, Jira integration or timers.
@@ -37,7 +37,7 @@ It does not have fancy features like issues management, Jira integration or time
 ## Screenshots
 <a href="assets/screenshot.png"><img alt="Application screenshot with cards face down" src="assets/screenshot.png" width="412px"></a>
 <a href="assets/screenshot-revealed.png"><img alt="Application screenshot with cards revealed" src="assets/screenshot-revealed.png" width="412px"></a>
-<a href="assets/screenshot-stories.png"><img alt="Application screenshot with the editable list of estimated stories" src="assets/screenshot-stories.png" width="412px"></a>
+<a href="assets/screenshot-dark.png"><img alt="Application screenshot with the dark theme" src="assets/screenshot-dark.png" width="412px"></a>
 
 ## Deployment
 
