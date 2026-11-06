@@ -83,6 +83,16 @@ class GameManager:
         game.player_picks(player_uuid, pick)
         return game.state()
 
+    def update_story(self, game_uuid: str, story_id: int, name=None, estimate=None) -> dict:
+        game = self.__get_ongoing_game(game_uuid)
+        game.update_story(story_id, name, estimate)
+        return game.info()
+
+    def delete_story(self, game_uuid: str, story_id: int) -> dict:
+        game = self.__get_ongoing_game(game_uuid)
+        game.delete_story(story_id)
+        return game.info()
+
     def reveal_cards(self, game_uuid: str) -> tuple[dict, dict]:
         game = self.__get_ongoing_game(game_uuid)
         game.reveal_hands()

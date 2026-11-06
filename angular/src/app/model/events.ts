@@ -2,9 +2,17 @@ export interface GameInfo {
   name: string;
   deck: string;
   revealed: boolean;
-  /** Number of stories estimated so far, per card value */
-  estimates?: Record<string, number>;
+  /** Stories estimated so far (one per revealed turn), oldest first */
+  history?: HistoryEntry[];
+  /** Sum of the estimates of the stories estimated so far */
+  total?: number;
   playerId?: string;
+}
+
+export interface HistoryEntry {
+  id: number;
+  name: string;
+  estimate: number;
 }
 
 export interface Player {

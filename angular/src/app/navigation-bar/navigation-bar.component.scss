@@ -1,13 +1,10 @@
-@import "node_modules/bootstrap/scss/functions";
-@import "node_modules/bootstrap/scss/variables";
-@import "node_modules/bootstrap/scss/mixins";
-
 nav {
-  border-bottom: 1px solid $gray-400;
-  box-shadow: 0 0 10px 0 $gray-400;
+  border-bottom: 1px solid var(--bs-gray-400);
+  box-shadow: 0 0 10px 0 var(--bs-gray-400);
+
   :host-context([data-bs-theme='dark']) & {
     border-bottom-color: var(--navbar-border-bottom-color);
-    box-shadow: 0 0 10px 0 $gray-800;
+    box-shadow: 0 0 10px 0 var(--bs-gray-800);
   }
 }
 
@@ -17,7 +14,9 @@ nav {
 
 .icon {
   height: 38px;
-  @include media-breakpoint-up(sm) {
+
+  // Bootstrap's `sm` breakpoint
+  @media (min-width: 576px) {
     height: 48px;
   }
 }

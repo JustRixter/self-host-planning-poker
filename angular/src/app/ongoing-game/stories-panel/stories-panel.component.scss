@@ -1,0 +1,17 @@
+.index {
+  min-width: 1.75rem;
+}
+
+.story-list {
+  overflow-y: auto;
+  // Keep the header and the footer of the panel on screen when the list is long
+  max-height: calc(100svh - 14rem);
+}
+
+// The list sticks to the top of the screen while the page scrolls
+@media (min-width: 992px) {
+  .stories {
+    position: sticky;
+    top: 0;
+  }
+}

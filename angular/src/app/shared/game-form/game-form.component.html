@@ -8,7 +8,9 @@
       <label [for]="deckSelect" class="form-label">{{ t('deck-label') }}</label>
       <select class="form-select" formControlName="deck" #deckSelect>
         <ng-container *transloco="let n; read 'deckNames'">
-          <option *ngFor="let deck of decks" [ngValue]="deck">{{ n(deck.name) }} ({{ displayDeckValues(deck) }})</option>
+          @for (deck of decks; track deck) {
+            <option [ngValue]="deck">{{ n(deck.name) }} ({{ displayDeckValues(deck) }})</option>
+          }
         </ng-container>
       </select>
     </div>

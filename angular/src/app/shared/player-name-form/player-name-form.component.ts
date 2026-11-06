@@ -1,4 +1,4 @@
-import { Component, EventEmitter, Input, OnDestroy, Output } from '@angular/core';
+import { Component, EventEmitter, Input, OnDestroy, Output, ChangeDetectionStrategy } from '@angular/core';
 import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { UserInformationService } from '../user-info/user-information.service';
 import { TranslocoDirective } from '@jsverse/transloco';
@@ -8,6 +8,7 @@ import { debounceTime, Subject, Subscription } from "rxjs";
     selector: 'shpp-player-name-form',
     templateUrl: './player-name-form.component.html',
     standalone: true,
+    changeDetection: ChangeDetectionStrategy.Eager,
     imports: [TranslocoDirective, ReactiveFormsModule]
 })
 export class PlayerNameFormComponent implements OnDestroy {

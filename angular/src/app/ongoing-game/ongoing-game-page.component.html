@@ -8,9 +8,17 @@
   </ng-container>
 
   <ng-container content>
-    <shpp-card-table class="flex-grow-1" />
-    <shpp-estimates-summary />
-    <shpp-turn-summary *ngIf="showSummary" class="bg-body-secondary" />
-    <shpp-card-picker *ngIf="!showSummary" class="bg-body-secondary" />
+    <div class="d-flex flex-column flex-lg-row flex-grow-1">
+      <div class="d-flex flex-column flex-grow-1 main-column">
+        <shpp-card-table class="flex-grow-1" />
+        @if (showSummary) {
+          <shpp-turn-summary class="bg-body-secondary" />
+        }
+        @if (!showSummary) {
+          <shpp-card-picker class="bg-body-secondary" />
+        }
+      </div>
+      <shpp-stories-panel class="stories-column" />
+    </div>
   </ng-container>
 </shpp-container>

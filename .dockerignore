@@ -1,0 +1,25 @@
+# Only the build context root's .dockerignore is honoured by Docker,
+# the ones in angular/ and flask/ are not used when building from the repository root.
+.git
+.github
+.idea
+.vscode
+assets
+*.md
+**/.DS_Store
+
+# Angular
+**/node_modules
+angular/dist
+angular/.angular
+angular/coverage
+
+# Flask
+**/__pycache__
+**/*.pyc
+flask/env
+flask/venv
+flask/.venv
+flask/database.db
+flask/static
+flask/test

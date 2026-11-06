@@ -1,4 +1,4 @@
-import { Component } from '@angular/core';
+import { Component, ChangeDetectionStrategy } from '@angular/core';
 import { TranslocoDirective } from '@jsverse/transloco';
 import { ThemeToggleComponent } from '../shared/theme/theme-toggle.component';
 import { BaseHrefPipe } from "../shared/base-href.pipe";
@@ -8,6 +8,7 @@ import { BaseHrefPipe } from "../shared/base-href.pipe";
   selector: 'shpp-navigation-bar',
   templateUrl: './navigation-bar.component.html',
   imports: [TranslocoDirective, BaseHrefPipe, ThemeToggleComponent],
+  changeDetection: ChangeDetectionStrategy.Eager,
   styleUrls: ['./navigation-bar.component.scss']
 })
 export class NavigationBarComponent {

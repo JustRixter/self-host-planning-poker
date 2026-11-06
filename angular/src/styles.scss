@@ -1,18 +1,21 @@
 /* You can add global styles to this file, and also import other style files */
+@use 'sass:meta';
 
-$primary: #198754;
-$enable-shadows: true;
-$color-mode-type: data;
-
-/* Importing Bootstrap SCSS file. */
-@import 'bootstrap/scss/bootstrap';
+// Bootstrap itself still relies on @import internally, so it can only be loaded as a whole.
+// Its variables are overridden here; everything else uses Bootstrap's CSS variables (--bs-*).
+@include meta.load-css('../node_modules/bootstrap/scss/bootstrap', $with: (
+  'primary': #198754,
+  'enable-shadows': true,
+  'color-mode-type': data
+));
 
 :root {
-  --card-color: #{$green-500};
-  --navbar-bg-color: #{$green-400};
-  --navbar-border-bottom-color: #{$green-800};
+  // Bootstrap's green-500, green-400 and green-800
+  --card-color: #198754;
+  --navbar-bg-color: #75b798;
+  --navbar-border-bottom-color: #0a3622;
   --navbar-text-color: white;
-  --navbar-muted-color: $gray-400;
+  --navbar-muted-color: var(--bs-gray-400);
 }
 
 .bg-primary {
@@ -47,14 +50,14 @@ $color-mode-type: data;
   }
 
   &:not(.card-disabled, .dashed) {
-    box-shadow: 0 0 15px 0 $gray-400;
+    box-shadow: 0 0 15px 0 var(--bs-gray-400);
   }
 
   [data-bs-theme="dark"] & {
-    background-color: $gray-800;
+    background-color: var(--bs-gray-800);
     color: white;
     &:not(.card-disabled, .dashed) {
-      box-shadow: 0 0 15px 0 $gray-800;
+      box-shadow: 0 0 15px 0 var(--bs-gray-800);
     }
   }
 }
@@ -65,12 +68,12 @@ $color-mode-type: data;
 }
 
 .card-disabled {
-  background: $gray-200;
-  outline-color: $gray-600;
-  color: $gray-700;
+  background: var(--bs-gray-200);
+  outline-color: var(--bs-gray-600);
+  color: var(--bs-gray-700);
   [data-bs-theme="dark"] & {
-    background: $gray-800;
-    color: $gray-600;
+    background: var(--bs-gray-800);
+    color: var(--bs-gray-600);
   }
 }
 

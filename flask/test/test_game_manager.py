@@ -253,6 +253,24 @@ class GameManagerTestCase(unittest.TestCase):
             gm.end_turn('uuid2')
         self.assertEqual(str(ex.exception), 'Game uuid2 is not ongoing')
 
+    def test_reveal_records_the_story_which_can_then_be_edited_and_deleted(self):
+        gm = GameManager()
+        game_id = gm.create('Estimates')
+        gm.join_game(game_id, 'p1', 'Alice', False)
+        gm.join_game(game_id, 'p2', 'Bob', False)
+        gm.pick_card(game_id, 'p1', 3)
+        gm.pick_card(game_id, 'p2', 3)
+        _, info = gm.reveal_cards(game_id)
+        self.assertEqual(info['history'], [{'id': 1, 'name': '', 'estimate': 3}])
+        info = gm.update_story(game_id, 1, 'Checkout', 8)
+        self.assertEqual(info['history'], [{'id': 1, 'name': 'Checkout', 'estimate': 8}])
+        self.assertEqual(info['total'], 8)
+        info = gm.delete_story(game_id, 1)
+        self.assertEqual(info['history'], [])
+        for action in (lambda: gm.update_story('unknown-game', 1, 'x'), lambda: gm.delete_story('unknown-game', 1)):
+            with self.assertRaises(GameNotOngoingError):
+                action()
+
 
 if __name__ == '__main__':
     unittest.main()

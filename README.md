@@ -23,17 +23,21 @@ It features:
   * Responsive layout
   * Vote summary
   * Dark theme (follows your system by default, switchable from the navigation bar)
-  * Stories per estimate: each time you finish a round with "New turn", the most-picked card is counted as that story's
-    estimate and the totals are shown on the game page (kept in memory, reset when the deck changes or the server restarts)
+  * Story names: give the story being estimated a name, shared with all the players
+  * Estimated stories: a list that is always visible next to the game (below it on small screens). A story is added to it
+    each time the cards are revealed, with the most-picked card as its estimate (the highest one on a tie). Use it to
+    give the story a name, fix its estimate or delete it (for instance when the team votes again after a discussion).
+    It also shows the total points (except for T-shirt sizes), and "Copy all" copies the list as a table (tab-separated
+    text and HTML) to paste in a spreadsheet or a document. The list is kept in memory: it is reset when the deck is
+    changed or the server restarts.
   * Translations _(inherited from the original project; new strings of this fork are English only and fall back to English)_
  
 It does not have fancy features like issues management, Jira integration or timers.
 
 ## Screenshots
-_Screenshots are from the original project and do not show the dark theme._
-
 <a href="assets/screenshot.png"><img alt="Application screenshot with cards face down" src="assets/screenshot.png" width="412px"></a>
-<a href="assets/screenshot.png"><img alt="Application screenshot with cards revealed" src="assets/screenshot-revealed.png" width="412px"></a>
+<a href="assets/screenshot-revealed.png"><img alt="Application screenshot with cards revealed" src="assets/screenshot-revealed.png" width="412px"></a>
+<a href="assets/screenshot-dark.png"><img alt="Application screenshot with the dark theme" src="assets/screenshot-dark.png" width="412px"></a>
 
 ## Deployment
 
@@ -69,6 +73,7 @@ volumes:
 | Variable              | Meaning                                                                                                                                                                                                                                          | Example            |
 |-----------------------|--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|--------------------|
 | `APP_ROOT` (optional) | Allows you to deploy to another path than `/`.<br>See [Configuration examples for deploying on sub‐paths](https://github.com/axeleroy/self-host-planning-poker/wiki/Configuration-examples-for-deploying-on-sub%E2%80%90paths) for more details. | `APP_ROOT=/poker/` |
+| `SECRET_KEY` (optional) | Secret used to sign the session cookies. A random one is generated at startup if it is not set, which is fine for a single instance. | `SECRET_KEY=change-me` |
 
 ### Running behind a reverse-proxy
 
@@ -126,7 +131,7 @@ python -m unittest
 >   -v $(pwd)/flask:/app \
 >   -p 5000:5000 \
 >   python:3.13-slim \
->   bash -c "cd /app; pip install -r requirements.txt; FLASK_DEBUG=1 gunicorn --worker-class eventlet -w 1 app:app --bind 0.0.0.0:5000"
+>   bash -c "cd /app; pip install -r requirements.txt; FLASK_DEBUG=1 gunicorn --worker-class gevent -w 1 app:app --bind 0.0.0.0:5000"
 > ```
 > </details>
 

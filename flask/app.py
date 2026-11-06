@@ -1,5 +1,6 @@
 import errno
 import os
+import secrets
 import sys
 import uuid
 
@@ -14,7 +15,8 @@ from gamestate.game_manager import GameManager
 from gamestate.models import database_proxy, StoredGame
 
 app = Flask(__name__)
-app.config['SECRET_KEY'] = 'secret!'
+# Set SECRET_KEY to keep it stable across restarts; otherwise a random one is generated at startup
+app.config['SECRET_KEY'] = os.getenv('SECRET_KEY') or secrets.token_hex(32)
 
 if app.config['DEBUG']:
     real_db = SqliteDatabase('database.db')
@@ -150,6 +152,22 @@ def pick_card(data):
 
     state = gm.pick_card(game_id, player_id, card)
     emit('state', state, to=game_id, json=True)
+
+
+@socketio.event
+def update_story(data):
+    game_id = session['game_id']
+
+    info = gm.update_story(game_id, data['id'], data.get('name'), data.get('estimate'))
+    emit('info', info, to=game_id, json=True)
+
+
+@socketio.event
+def delete_story(data):
+    game_id = session['game_id']
+
+    info = gm.delete_story(game_id, data['id'])
+    emit('info', info, to=game_id, json=True)
 
 
 @socketio.event

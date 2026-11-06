@@ -10,8 +10,8 @@ export class UserInformationService {
   private isSpectatorSubject = new BehaviorSubject<boolean>(false);
 
   constructor() {
-    let name = this.loadFromLocalStorage('name');
-    let isSpectator = this.loadFromLocalStorage('isSpectator') === "true";
+    const name = this.loadFromLocalStorage('name');
+    const isSpectator = this.loadFromLocalStorage('isSpectator') === "true";
     this.nameSubject.next(name);
     this.isSpectatorSubject.next(isSpectator)
   }
@@ -53,7 +53,7 @@ export class UserInformationService {
   private loadFromLocalStorage(key: string): any {
     try {
       return localStorage.getItem(key);
-    } catch (e) {
+    } catch {
       console.debug('Localstorage is either unavailable or disabled');
       return null;
     }
@@ -62,7 +62,7 @@ export class UserInformationService {
   private saveToLocalStorage(key: string, value: any): void {
     try {
       localStorage.setItem(key, value);
-    } catch (e) {
+    } catch {
       console.debug('Localstorage is either unavailable or disabled');
     }
   }

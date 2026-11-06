@@ -1,4 +1,4 @@
-import { Component, OnDestroy } from '@angular/core';
+import { Component, OnDestroy, ChangeDetectionStrategy } from '@angular/core';
 import { CurrentGameService } from '../../ongoing-game/current-game.service';
 import { GameInfo } from '../../model/events';
 import { Subscription } from 'rxjs';
@@ -6,14 +6,15 @@ import { ToastService } from '../../shared/toast/toast.service';
 import { Clipboard } from '@angular/cdk/clipboard';
 import { TranslocoDirective, TranslocoService } from '@jsverse/transloco';
 import { NgbModal, NgbTooltip } from '@ng-bootstrap/ng-bootstrap';
-import { NgIf } from '@angular/common';
+
 import { QrCodeModalContentComponent } from "./qr-code-modal-content/qr-code-modal-content.component";
 
 @Component({
     selector: 'shpp-game-name',
     templateUrl: './nav-game-name.component.html',
     standalone: true,
-    imports: [TranslocoDirective, NgIf, NgbTooltip]
+    changeDetection: ChangeDetectionStrategy.Eager,
+    imports: [TranslocoDirective, NgbTooltip]
 })
 export class NavGameNameComponent implements OnDestroy {
 
