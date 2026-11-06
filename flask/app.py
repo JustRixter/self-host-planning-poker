@@ -84,11 +84,18 @@ def join(data):
 
 
 @socketio.event
-def disconnect():
-    player_id = session['player_id']
-    game_id = session['game_id']
+def disconnect(reason=None):
+    # Flask-SocketIO 5.5+ passes the reason of the disconnection to this handler: it must accept it,
+    # otherwise the handler fails silently and the players who leave stay in the game forever.
+    player_id = session.get('player_id')
+    game_id = session.get('game_id')
+    if not player_id or not game_id:
+        return  # the client never joined a game
 
-    state = gm.leave_game(game_id, player_id)
+    try:
+        state = gm.leave_game(game_id, player_id)
+    except (PlanningPokerException, KeyError):
+        return  # the game is not ongoing anymore, or the player already left
     leave_room(game_id)
     emit('state', state, to=game_id, json=True)
 
