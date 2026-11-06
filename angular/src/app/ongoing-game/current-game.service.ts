@@ -1,7 +1,7 @@
 import { inject, Injectable } from '@angular/core';
 import { Manager, Socket } from 'socket.io-client';
 import { environment } from '../../environments/environment';
-import { BehaviorSubject, filter, map, Observable, Subject } from 'rxjs';
+import { BehaviorSubject, distinctUntilChanged, filter, map, Observable, Subject } from 'rxjs';
 import { ErrorMessage, GameInfo, GameState } from '../model/events';
 import { Deck, decksDict } from '../model/deck';
 import { ActivatedRouteSnapshot, CanActivateFn, Router, UrlTree } from '@angular/router';
@@ -9,6 +9,9 @@ import { TranslocoService } from '@jsverse/transloco';
 import { UserInformationService } from '../shared/user-info/user-information.service';
 import { ToastService } from '../shared/toast/toast.service';
 import { PathLocationStrategy } from '@angular/common';
+
+/** reconnecting: the connection was lost and the client keeps trying. failed: it gave up, the page has to be reloaded */
+export type ConnectionState = 'connected' | 'reconnecting' | 'failed';
 
 @Injectable({
   providedIn: 'root'
@@ -25,6 +28,13 @@ export class CurrentGameService {
   private stateSubject = new BehaviorSubject<GameState>({});
   private infoSubject = new BehaviorSubject<GameInfo | null>(null);
   private newGameSubject = new Subject<void>();
+  private departuresSubject = new Subject<string>();
+  private connectionSubject = new BehaviorSubject<ConnectionState>('connected');
+
+  /** The game we are in: after a lost connection, we have to join it again */
+  private gameId?: string;
+  /** The card we have picked, to pick it again after rejoining */
+  private lastPick: number | null = null;
 
   constructor(private router: Router,
               private userInformation: UserInformationService,
@@ -44,27 +54,48 @@ export class CurrentGameService {
       ackTimeout: this.ackTimeoutMs
     });
 
-    this.socket.on('state', (state: GameState) => this.stateSubject.next(state));
-    this.socket.on('info', (info: GameInfo) => this.infoSubject.next(info));
-    this.socket.on('new_game', () => this.newGameSubject.next());
+    this.socket.on('state', (state: GameState) => {
+      this.notifyDepartures(this.stateSubject.value, state);
+      this.stateSubject.next(state);
+    });
+    this.socket.on('info', (info: GameInfo) => {
+      if (info.deck !== this.infoSubject.value?.deck) {
+        // The server clears the hands when the deck changes
+        this.lastPick = null;
+      }
+      this.infoSubject.next(info);
+    });
+    this.socket.on('new_game', () => {
+      this.lastPick = null;
+      this.newGameSubject.next();
+    });
+
+    // A connection that comes back is a new connection for the server, which has removed us from the game
+    this.socket.on('connect', () => {
+      this.connectionSubject.next('connected');
+      this.rejoin();
+    });
 
     this.socket.on('disconnect', (reason) => {
-      if (reason !== 'io client disconnect') {
-        this.error('errors.disconnect', {reason: reason, delay: this.reconnectDelaySeconds});
-      }
       console.info(`Socket disconnected. Reason is "${reason}"`);
+      if (reason === 'io client disconnect') {
+        return; // we left the game on purpose
+      }
+      this.connectionSubject.next('reconnecting');
+      if (reason === 'io server disconnect') {
+        // The server closed the connection: the client does not try to reconnect by itself in that case
+        this.socket.connect();
+      }
     });
+    // No toasts for the state of the connection: the navigation bar shows an icon when there is a problem
     this.manager.on('reconnect_attempt', (attempt: number) => {
-      this.info('reconnect.attempt', { attempt: attempt, total: this.totalAttempts });
+      console.info(`Reconnection attempt ${attempt}/${this.totalAttempts}`);
+      this.connectionSubject.next('reconnecting');
     });
-    this.manager.on('reconnect_error', (err: Error) => {
-      this.error('reconnect.error', { error: err.message });
-    });
+    this.manager.on('reconnect_error', (err: Error) => console.warn(`Could not reconnect: ${err.message}`));
     this.manager.on('reconnect_failed', () => {
-      this.error('reconnect.failed', { attempts: this.totalAttempts });
-    });
-    this.manager.on('reconnect', (attempt: number) => {
-      this.success('reconnect.success', { attempts: attempt });
+      console.error(`Could not reconnect after ${this.totalAttempts} attempts`);
+      this.connectionSubject.next('failed');
     });
 
     this.userInformation.nameObservable().subscribe((name: string) => {
@@ -74,6 +105,7 @@ export class CurrentGameService {
     });
     this.userInformation.spectatorObservable().subscribe((spectator: boolean) => {
       if (this.socket.connected) {
+        this.lastPick = null; // the server clears the hand of a player who changes role
         this.socket.emit('set_spectator', {spectator: spectator})
       }
     });
@@ -87,6 +119,16 @@ export class CurrentGameService {
     return this.infoSubject.asObservable();
   }
 
+  /** The state of the connection to the server, while we are in a game */
+  public get connection$(): Observable<ConnectionState> {
+    return this.connectionSubject.asObservable();
+  }
+
+  /** Emits the name of each player who leaves the game while we are in it */
+  public get departures$(): Observable<string> {
+    return this.departuresSubject.asObservable();
+  }
+
   public get newGame$(): Observable<void>{
     return this.newGameSubject.asObservable();
   }
@@ -97,11 +139,13 @@ export class CurrentGameService {
     );
   }
 
+  /** Emits when the deck changes, not each time the info of the game does (a story edited, the cards revealed...) */
   public get deck$(): Observable<Deck> {
     return this.infoSubject.asObservable()
     .pipe(
       filter((gameInfo: GameInfo | null): gameInfo is GameInfo => gameInfo !== null),
-      map((gameInfo: GameInfo) => decksDict[gameInfo?.deck])
+      map((gameInfo: GameInfo) => decksDict[gameInfo?.deck]),
+      distinctUntilChanged()
     );
   }
 
@@ -119,6 +163,7 @@ export class CurrentGameService {
           this.handleError(response);
           return this.router.parseUrl('/');
         } else {
+          this.gameId = gameId;
           this.infoSubject.next(response);
           this.userInformation.setPlayerIdSubject(response.playerId);
           return true;
@@ -130,7 +175,46 @@ export class CurrentGameService {
       });
   }
 
+  /** Joins the game again after the connection was lost (and restored), and picks the card again */
+  private rejoin(): void {
+    const gameId = this.gameId;
+    if (!gameId) {
+      return; // the first connection: canActivate() joins the game
+    }
+    this.socket.emitWithAck('join', {
+      game: gameId,
+      name: this.userInformation.getName(),
+      spectator: this.userInformation.isSpectator()
+    })
+    .then((response: GameInfo | ErrorMessage) => {
+        if ('error' in response) {
+          this.handleError(response);
+          this.leave();
+          this.router.navigateByUrl('/');
+          return;
+        }
+        this.infoSubject.next(response);
+        this.userInformation.setPlayerIdSubject(response.playerId);
+        if (this.lastPick !== null && !response.revealed) {
+          this.socket.emit('pick_card', { card: this.lastPick }, (error?: ErrorMessage) => this.handleError(error));
+        }
+      },
+      (reason: any) => this.handleError(reason));
+  }
+
+  private notifyDepartures(previous: GameState, current: GameState): void {
+    const currentNames = new Set(Object.values(current).map((player) => player.name));
+    Object.entries(previous)
+      .filter(([id]) => !(id in current))
+      // Someone who reloads the page comes back under a new id: that is not worth announcing
+      .filter(([, player]) => !currentNames.has(player.name))
+      .forEach(([, player]) => this.departuresSubject.next(player.name));
+  }
+
   public leave(): void {
+    this.connectionSubject.next('connected');
+    this.gameId = undefined;
+    this.lastPick = null;
     this.socket.disconnect();
     this.stateSubject.next({});
     this.infoSubject.next(null);
@@ -153,6 +237,7 @@ export class CurrentGameService {
   }
 
   public pickCard(cardValue: number | null): void {
+    this.lastPick = cardValue;
     this.socket.emit('pick_card', { card: cardValue }, (response?: ErrorMessage) => this.handleError(response));
   }
 
@@ -172,20 +257,6 @@ export class CurrentGameService {
         this.error(`errors.0`, { message: error });
       }
     }
-  }
-
-  private info(key: string, translateParams?: Record<string, unknown>): void {
-    this.transloco.selectTranslate(key, translateParams).subscribe((text) => {
-      console.info(text);
-      this.toastService.show(text, { className: 'bg-info' });
-    })
-  }
-
-  private success(key: string, translateParams?: Record<string, unknown>): void {
-    this.transloco.selectTranslate(key, translateParams).subscribe((text) => {
-      console.info(text);
-      this.toastService.show(text, { className: 'bg-success text-light' });
-    });
   }
 
   private error(key: string, translateParams?: Record<string, unknown>): void {

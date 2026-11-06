@@ -22,7 +22,7 @@ It features:
   * Spectator mode
   * Responsive layout
   * Vote summary
-  * Dark theme (follows your system by default, switchable from the navigation bar)
+  * Light and dark themes (follows your system by default, switchable from the navigation bar)
   * Story names: give the story being estimated a name, shared with all the players
   * Estimated stories: a list that is always visible next to the game (below it on small screens). A story is added to it
     each time the cards are revealed, with the most-picked card as its estimate (the highest one on a tie). Use it to
@@ -81,7 +81,18 @@ Refer to [Socket.IO's documentation](https://socket.io/docs/v4/reverse-proxy/)  
 
 ### Customization
 
-See [Customizing the application's style and icon](https://github.com/axeleroy/self-host-planning-poker/wiki/Customizing-the-application's-style-and-icon).
+The look of the application is defined by a few CSS variables. To change them, mount your own CSS file as
+`/app/static/overrides.css` (it is loaded after the application's styles).
+[`angular/src/assets/overrides.css`](angular/src/assets/overrides.css) is a commented example that turns the green
+accent into red, for the light and the dark themes.
+
+The main variables are `--app-accent`, `--app-accent-hover`, `--app-accent-soft`, `--app-accent-text` (the accent
+color), `--card-color` (the color of the cards only) and Bootstrap's `--bs-body-bg`, `--bs-body-color` and
+`--bs-border-color`. They are defined once for each theme, under `[data-bs-theme='light']` and `[data-bs-theme='dark']`.
+
+For the icon and other deployment tips, see the original project's
+[wiki](https://github.com/axeleroy/self-host-planning-poker/wiki/Customizing-the-application's-style-and-icon).
+The color variables it mentions (`--navbar-bg-color` and the like) no longer exist in this fork.
 
 ## Getting involved
 

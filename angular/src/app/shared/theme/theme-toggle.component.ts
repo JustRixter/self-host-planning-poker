@@ -8,11 +8,11 @@ import { ThemeService } from './theme.service';
   imports: [TranslocoDirective],
   changeDetection: ChangeDetectionStrategy.Eager,
   template: `
-    <button *transloco="let t; read 'theme'" type="button" class="btn btn-outline-light btn-sm"
+    <button *transloco="let t; read 'theme'" type="button" class="btn btn-icon"
             [attr.aria-label]="t('toggle', { mode: t(theme.preference) })"
             [title]="t('toggle', { mode: t(theme.preference) })"
             (click)="theme.cycle()">
-      <svg class="bi" width="1em" height="1em" fill="currentColor" aria-hidden="true">
+      <svg class="bi" fill="currentColor" aria-hidden="true">
         <use [attr.xlink:href]="'assets/bootstrap-icons.svg#' + icon()"/>
       </svg>
     </button>
@@ -22,6 +22,6 @@ export class ThemeToggleComponent {
   constructor(protected theme: ThemeService) {}
 
   icon(): string {
-    return { auto: 'circle-half', light: 'sun-fill', dark: 'moon-stars-fill' }[this.theme.preference];
+    return { auto: 'circle-half', light: 'sun', dark: 'moon-stars' }[this.theme.preference];
   }
 }

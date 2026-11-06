@@ -1,4 +1,4 @@
-import { Component, ChangeDetectionStrategy } from '@angular/core';
+import { Component, ChangeDetectionStrategy, Input } from '@angular/core';
 import { NavigationBarComponent } from '../../navigation-bar/navigation-bar.component';
 
 @Component({
@@ -9,5 +9,6 @@ import { NavigationBarComponent } from '../../navigation-bar/navigation-bar.comp
   imports: [ NavigationBarComponent ]
 })
 export class ContainerComponent {
-
+  /** Whether the navigation bar shows the theme toggle on its own */
+  @Input() themeToggle = true;
 }
