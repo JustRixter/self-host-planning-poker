@@ -2,14 +2,14 @@
   @if (currentGameInfo) {
     <span class="text-muted ellipsis" *transloco="let n; read 'deckNames'">{{ n(currentGameInfo.deck) }}</span>
   }
-  <button class="btn btn-outline-secondary btn-sm mx-2"
+  <button class="btn btn-icon ms-1"
     [attr.aria-label]="t('edit')"
     [ngbTooltip]="t('edit')"
     placement="bottom"
     (click)="openEdit(gameEdit)"
     *transloco="let t; read 'buttons'">
-    <svg class="bi bi-pencil-fill" width="1em" height="1em" fill="currentColor" aria-hidden="true">
-      <use xlink:href="assets/bootstrap-icons.svg#pencil-fill"/>
+    <svg class="bi" fill="currentColor" aria-hidden="true">
+      <use xlink:href="assets/bootstrap-icons.svg#pencil"/>
     </svg>
   </button>
 }

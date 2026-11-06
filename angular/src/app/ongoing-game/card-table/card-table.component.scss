@@ -1,4 +1,6 @@
 :host {
   display: flex;
   flex-direction: column;
+  // A soft light on the table: it gives the cards something to stand out from
+  background: radial-gradient(ellipse 65% 75% at 50% 42%, var(--app-table-glow), transparent 72%);
 }
