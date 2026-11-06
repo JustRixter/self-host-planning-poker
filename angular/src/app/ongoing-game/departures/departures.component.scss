@@ -1,0 +1,27 @@
+:host {
+  display: block;
+}
+
+// Plain text on the table: no box, no border, no shadow
+.departures-text {
+  margin: 0;
+  font-size: .8125rem;
+  line-height: 1.4;
+  color: var(--bs-secondary-color);
+  text-align: right;
+  overflow-wrap: anywhere;
+
+  @media (prefers-reduced-motion: no-preference) {
+    animation: departures-in 400ms ease both;
+  }
+
+  @media (max-width: 1199.98px) {
+    text-align: center;
+  }
+}
+
+@keyframes departures-in {
+  from {
+    opacity: 0;
+  }
+}

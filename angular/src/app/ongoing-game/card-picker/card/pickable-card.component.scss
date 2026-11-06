@@ -1,11 +1,9 @@
-.clickable {
-  cursor: pointer;
+:host {
+  flex-grow: 1;
+  display: flex;
+  justify-content: center;
 }
 
-.card-disabled {
-  cursor: default !important;
-}
-
-.selected {
-  transform: translateY(-50%);
+.card-border {
+  flex-shrink: 0;
 }

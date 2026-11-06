@@ -1,80 +1,216 @@
-/* You can add global styles to this file, and also import other style files */
+/* Global styles: Bootstrap 5.3 with this app's design tokens (colors, radii, type) layered on top. */
 @use 'sass:meta';
 
 // Bootstrap itself still relies on @import internally, so it can only be loaded as a whole.
-// Its variables are overridden here; everything else uses Bootstrap's CSS variables (--bs-*).
+// Everything below customises it through Bootstrap's CSS variables (--bs-*) and the app tokens (--app-*).
 @include meta.load-css('../node_modules/bootstrap/scss/bootstrap', $with: (
-  'primary': #198754,
-  'enable-shadows': true,
+  'primary': #047857,
+  'enable-shadows': false,
   'color-mode-type': data
 ));
 
+// ---------------------------------------------------------------------------
+// Tokens
+// One accent (emerald), cool neutrals, no pure black or white. Two radii:
+// controls (buttons, inputs) and surfaces (panels, playing cards).
+// Customise the look from overrides.css by redefining these variables.
+// ---------------------------------------------------------------------------
 :root {
-  // Bootstrap's green-500, green-400 and green-800
-  --card-color: #198754;
-  --navbar-bg-color: #75b798;
-  --navbar-border-bottom-color: #0a3622;
-  --navbar-text-color: white;
-  --navbar-muted-color: var(--bs-gray-400);
+  --app-font: 'Geist Variable', system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', sans-serif;
+  --app-radius-control: .625rem;
+  --app-radius-surface: .875rem;
+  --app-ease: cubic-bezier(.16, 1, .3, 1);
+
+  --bs-font-sans-serif: var(--app-font);
+  --bs-body-font-size: .9375rem;
+  --bs-border-radius: var(--app-radius-control);
+  --bs-border-radius-sm: .5rem;
+  --bs-border-radius-lg: var(--app-radius-surface);
+  --bs-border-radius-xl: 1rem;
 }
 
-.bg-primary {
-  background-color: var(--navbar-bg-color) !important;
-  color: var(--navbar-text-color) !important;
-  .text-muted {
-    color: var(--navbar-muted-color) !important;
+:root,
+[data-bs-theme='light'] {
+  --app-accent: #047857;
+  --app-accent-hover: #065f46;
+  --app-accent-soft: #daf1e7;
+  --app-accent-text: #065f46;
+  --app-surface: #fcfcfd;
+  --app-card-face: #fcfcfd;
+  --app-table-glow: rgb(4 120 87 / .06);
+  --app-card-back: #047857;
+  --app-shadow: 0 1px 2px rgb(16 42 32 / .06), 0 8px 24px -8px rgb(16 42 32 / .12);
+  --app-shadow-lift: 0 2px 4px rgb(16 42 32 / .08), 0 14px 28px -10px rgb(16 42 32 / .22);
+
+  --bs-body-bg: #f5f6f7;
+  --bs-body-bg-rgb: 245, 246, 247;
+  --bs-body-color: #17181b;
+  --bs-body-color-rgb: 23, 24, 27;
+  --bs-emphasis-color: #0b0c0e;
+  --bs-secondary-color: rgb(23 24 27 / .66);
+  --bs-secondary-bg: #ebedef;
+  --bs-secondary-bg-rgb: 235, 237, 239;
+  --bs-tertiary-bg: #f0f2f3;
+  --bs-tertiary-bg-rgb: 240, 242, 243;
+  --bs-border-color: #dde0e4;
+  --bs-link-color: #047857;
+  --bs-link-color-rgb: 4, 120, 87;
+  --bs-link-hover-color: #065f46;
+  --bs-link-hover-color-rgb: 6, 95, 70;
+}
+
+[data-bs-theme='dark'] {
+  --app-accent: #34d399;
+  --app-accent-hover: #6ee7b7;
+  --app-accent-soft: rgb(52 211 153 / .14);
+  --app-accent-text: #6ee7b7;
+  // Elevation: the table is the lowest layer, panels sit above it and the cards on top
+  --app-surface: #1c1f26;
+  --app-card-face: #282c35;
+  --app-table-glow: rgb(52 211 153 / .09);
+  // The back of the cards is a deeper green than the accent: the accent is too bright on large surfaces
+  --app-card-back: #137a5d;
+  --app-shadow: 0 1px 2px rgb(0 0 0 / .35), 0 8px 24px -8px rgb(0 0 0 / .45);
+  --app-shadow-lift: 0 2px 4px rgb(0 0 0 / .4), 0 14px 28px -10px rgb(0 0 0 / .6);
+
+  --bs-body-bg: #14161b;
+  --bs-body-bg-rgb: 20, 22, 27;
+  --bs-body-color: #e8e9eb;
+  --bs-body-color-rgb: 232, 233, 235;
+  --bs-emphasis-color: #f6f6f7;
+  --bs-secondary-color: rgb(232 233 235 / .62);
+  --bs-secondary-bg: #262a33;
+  --bs-secondary-bg-rgb: 38, 42, 51;
+  --bs-tertiary-bg: #1c1f26;
+  --bs-tertiary-bg-rgb: 28, 31, 38;
+  --bs-border-color: #2f343d;
+  --bs-link-color: #34d399;
+  --bs-link-color-rgb: 52, 211, 153;
+  --bs-link-hover-color: #6ee7b7;
+  --bs-link-hover-color-rgb: 110, 231, 183;
+
+  .btn-primary {
+    --bs-btn-color: #04120b;
+    --bs-btn-bg: #34d399;
+    --bs-btn-border-color: #34d399;
+    --bs-btn-hover-color: #04120b;
+    --bs-btn-hover-bg: #6ee7b7;
+    --bs-btn-hover-border-color: #6ee7b7;
+    --bs-btn-active-color: #04120b;
+    --bs-btn-active-bg: #86efc4;
+    --bs-btn-active-border-color: #86efc4;
+    --bs-btn-disabled-color: #04120b;
+    --bs-btn-disabled-bg: #34d399;
+    --bs-btn-disabled-border-color: #34d399;
+  }
+
+  .form-control:focus,
+  .form-select:focus {
+    border-color: #34d399;
+    box-shadow: 0 0 0 .2rem rgb(52 211 153 / .22);
+  }
+}
+
+// Used by the playing cards, kept as its own variable so that overrides.css can recolor the cards only.
+// --app-card-back is the face-down side, which has a deeper tone than the accent.
+:root {
+  --card-color: var(--app-accent);
+}
+
+// ---------------------------------------------------------------------------
+// Base
+// ---------------------------------------------------------------------------
+body {
+  font-feature-settings: 'ss01', 'cv11';
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+h1, h2, h3, h4, h5, h6, .fs-4, .fs-5 {
+  letter-spacing: -.015em;
+}
+
+.btn {
+  --bs-btn-font-weight: 500;
+  --bs-btn-padding-x: 1rem;
+  transition: background-color 120ms ease, border-color 120ms ease, color 120ms ease, transform 120ms var(--app-ease);
+
+  &:not(:disabled):active {
+    transform: scale(.98);
   }
 }
 
 .btn-sm {
   display: inline-flex;
   align-items: center;
-  height: 1.8rem;
+  justify-content: center;
+  gap: .35rem;
+  height: 2rem;
 }
 
-.card-border  {
-  aspect-ratio: 64 / 89;
-  height: 100px;
-  outline: 3px var(--card-color) solid;
-  outline-offset: -3px;
-  border-radius: 10px;
-  display: flex;
+.btn-icon {
+  // Square, borderless buttons for the icons of the navigation bar
+  display: inline-flex;
   align-items: center;
   justify-content: center;
-  background-color: var(--bs-body-bg);
-  color: var(--bs-body-color);
-  transition: transform 200ms ease-in-out, background-color 100ms ease-in, outline-color 100ms ease-in;
+  flex-shrink: 0;
+  width: 2rem;
+  height: 2rem;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: color-mix(in srgb, var(--bs-body-color) 78%, transparent);
 
-  @media (prefers-reduced-motion: reduce) {
-    transition: none;
+  .bi {
+    width: 1.25rem;
+    height: 1.25rem;
   }
 
-  &:not(.card-disabled, .dashed) {
-    box-shadow: 0 0 15px 0 var(--bs-gray-400);
+  &:hover,
+  &:focus-visible {
+    background: var(--bs-secondary-bg);
+    color: var(--bs-emphasis-color);
   }
 
-  [data-bs-theme="dark"] & {
-    background-color: var(--bs-gray-800);
-    color: white;
-    &:not(.card-disabled, .dashed) {
-      box-shadow: 0 0 15px 0 var(--bs-gray-800);
-    }
+  &:active {
+    background: var(--bs-secondary-bg);
+    color: var(--bs-emphasis-color);
   }
 }
 
-.card-value {
-  font-size: xx-large;
-  user-select: none;
+.btn-outline-secondary {
+  --bs-btn-color: var(--bs-body-color);
+  --bs-btn-border-color: var(--bs-border-color);
+  --bs-btn-hover-color: var(--bs-emphasis-color);
+  --bs-btn-hover-bg: var(--bs-secondary-bg);
+  --bs-btn-hover-border-color: var(--bs-border-color);
+  --bs-btn-active-color: var(--bs-emphasis-color);
+  --bs-btn-active-bg: var(--bs-secondary-bg);
+  --bs-btn-active-border-color: var(--bs-border-color);
+  --bs-btn-disabled-color: var(--bs-secondary-color);
+  --bs-btn-disabled-border-color: var(--bs-border-color);
 }
 
-.card-disabled {
-  background: var(--bs-gray-200);
-  outline-color: var(--bs-gray-600);
-  color: var(--bs-gray-700);
-  [data-bs-theme="dark"] & {
-    background: var(--bs-gray-800);
-    color: var(--bs-gray-600);
-  }
+.form-control,
+.form-select {
+  background-color: var(--app-surface);
+}
+
+:focus-visible {
+  outline: 2px solid var(--app-accent);
+  outline-offset: 2px;
+}
+
+.text-success {
+  // The agreement of the votes: follow the accent so that it stays readable in both themes
+  color: var(--app-accent-text) !important;
+}
+
+.panel {
+  background: var(--app-surface);
+  border: 1px solid var(--bs-border-color);
+  border-radius: var(--app-radius-surface);
+  box-shadow: var(--app-shadow);
 }
 
 .svh-100 {
@@ -82,8 +218,118 @@
   height: 100svh;
 }
 
+.player-name {
+  max-width: 9rem;
+}
+
+.min-w {
+  min-width: 0;
+}
+
 .ellipsis {
+  min-width: 0;
   overflow: hidden;
   white-space: nowrap;
   text-overflow: ellipsis;
+}
+
+.tabular {
+  font-variant-numeric: tabular-nums;
+}
+
+// ---------------------------------------------------------------------------
+// Playing cards
+// Used by the players' hands, the card picker and the vote summary.
+// ---------------------------------------------------------------------------
+.card-border {
+  aspect-ratio: 64 / 89;
+  height: var(--card-height, 100px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1.5px solid color-mix(in srgb, var(--card-color) 55%, var(--bs-border-color));
+  border-radius: var(--app-radius-surface);
+  background: var(--app-card-face);
+  color: var(--bs-body-color);
+  box-shadow: var(--app-shadow);
+  transition: transform 220ms var(--app-ease), box-shadow 220ms var(--app-ease), border-color 120ms ease,
+    background-color 120ms ease;
+
+  &.face-down {
+    border-color: color-mix(in srgb, var(--app-card-back) 75%, black);
+    background:
+      repeating-linear-gradient(135deg, rgb(255 255 255 / .09) 0 5px, transparent 5px 10px),
+      linear-gradient(160deg, color-mix(in srgb, var(--app-card-back) 85%, white), var(--app-card-back));
+    box-shadow: inset 0 0 0 3px rgb(255 255 255 / .22), var(--app-shadow);
+  }
+
+  // Nothing picked, or a spectator
+  &.dashed {
+    border: 1.5px dashed color-mix(in srgb, var(--bs-body-color) 26%, transparent);
+    background: transparent;
+    box-shadow: none;
+  }
+
+  &.card-disabled {
+    opacity: .5;
+    box-shadow: none;
+  }
+
+  &.clickable {
+    cursor: pointer;
+
+    &:hover {
+      transform: translateY(-6px);
+      border-color: var(--card-color);
+      box-shadow: var(--app-shadow-lift);
+    }
+  }
+
+  &.selected {
+    transform: translateY(-16px);
+    border-color: var(--card-color);
+    background: var(--app-accent-soft);
+    color: var(--app-accent-text);
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--card-color) 35%, transparent), var(--app-shadow-lift);
+  }
+
+  &.clickable:active {
+    transform: translateY(-2px) scale(.98);
+  }
+}
+
+.card-value {
+  // 1.75rem for the default 100px card
+  font-size: calc(var(--card-height, 100px) * .28);
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -.02em;
+  user-select: none;
+}
+
+// A hand turning face up is the one moment worth animating
+@media (prefers-reduced-motion: no-preference) {
+  shpp-player-hand .card-border:not(.face-down, .dashed) {
+    animation: card-flip 380ms var(--app-ease) both;
+  }
+}
+
+@keyframes card-flip {
+  from {
+    transform: perspective(500px) rotateY(88deg) scale(.96);
+  }
+  to {
+    transform: perspective(500px) rotateY(0) scale(1);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .card-border,
+  .btn {
+    transition: none;
+  }
+}
+
+.table-seats.compact {
+  --card-height: 76px;
 }

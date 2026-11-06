@@ -1,0 +1,30 @@
+:host {
+  display: inline-flex;
+}
+
+.status {
+  // The same square as the other icon buttons of the navigation bar, in the color of the errors
+  color: var(--bs-danger);
+
+  &:hover,
+  &:focus-visible {
+    color: var(--bs-danger);
+  }
+}
+
+span.status {
+  cursor: default;
+}
+
+// The icon breathes while the client keeps trying to reconnect
+.reconnecting {
+  @media (prefers-reduced-motion: no-preference) {
+    animation: reconnecting 1.6s ease-in-out infinite;
+  }
+}
+
+@keyframes reconnecting {
+  50% {
+    opacity: .35;
+  }
+}

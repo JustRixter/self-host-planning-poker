@@ -75,7 +75,6 @@
     "license": "License"
   },
   "errors": {
-    "disconnect": "Disconnected from game. Reason: \"{{reason}}\". Will reconnect in {{delay}}s...",
     "0": "Error: \"{{message}}\"",
     "4001": "You have selected a deck that does not exist.",
     "4002": "Somehow, you are trying to do an action on a game that is not ongoing.",
@@ -84,12 +83,6 @@
     "4005": "The card you have picked is not an acceptable value of the current deck.",
     "4006": "You are a spectator, you should not be able to pick a card.",
     "4008": "This story does not exist."
-  },
-  "reconnect": {
-    "attempt": "Lost connection. Attempting reconnection... ({{attempt}}/{{total}})",
-    "error": "Could not reconnect. Reason: \"{{error}}\".",
-    "failed": "Could not reconnect after {{attempts}} attempts.",
-    "success": "Successfully reconnected after {{attempts}} attempts."
   },
   "theme": {
     "toggle": "Theme: {{mode}} (click to change)",
@@ -101,7 +94,7 @@
     "title": "Stories",
     "summary": "{{count}} stories · {{points}} pts",
     "count": "{{count}} stories",
-    "empty": "No story estimated yet. Each time you reveal the cards, the estimate is added here.",
+    "empty": "Nothing here yet. Each time you reveal the cards, the estimate is added to this list.",
     "unnamed": "Story {{number}}",
     "total": "Total",
     "points": "{{count}} pts",
@@ -112,6 +105,15 @@
     "estimateHeader": "Estimate",
     "nameLabel": "Name of story {{number}}",
     "estimateLabel": "Estimate of story {{number}}",
-    "delete": "Delete story {{number}}"
+    "delete": "Delete story {{number}}",
+    "countOne": "1 story"
+  },
+  "departures": {
+    "left": "{{names}} left",
+    "more": "{{count}} more"
+  },
+  "connection": {
+    "reconnecting": "Connection lost. Trying to reconnect...",
+    "failed": "Could not reconnect. Click to reload the page."
   }
 }

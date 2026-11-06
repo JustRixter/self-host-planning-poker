@@ -1,9 +1,24 @@
-.face-down {
-  background-color: var(--card-color);
-  outline-offset: -5px;
-  outline-color: white;
+.hand {
+  margin: .5rem;
+
+  // Bootstrap's `md` breakpoint
+  @media (min-width: 768px) {
+    margin: 1rem 1.5rem;
+  }
 }
 
-.dashed {
-  outline-style: dashed;
+:host-context(.compact) .hand {
+  margin: .375rem .5rem;
+
+  @media (min-width: 768px) {
+    margin: .5rem .75rem;
+  }
+}
+
+.player-name {
+  max-width: 8rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-weight: 500;
 }
