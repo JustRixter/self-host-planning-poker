@@ -1,4 +1,4 @@
-FROM --platform=$BUILDPLATFORM docker.io/library/node:lts-slim AS node_builder
+FROM --platform=$BUILDPLATFORM docker.io/library/node:24-slim AS node_builder
 WORKDIR /angular
 COPY angular/ /angular
 RUN npm config set update-notifier false && \
@@ -18,4 +18,4 @@ RUN pip install --upgrade pip && \
   chown -R 1001:0 /app /data && \
   chmod -R g+w /app /data
 USER 1001
-CMD [ "gunicorn", "--worker-class", "eventlet", "-w", "1", "app:app", "--bind", "0.0.0.0:8000" ]
+CMD [ "gunicorn", "--worker-class", "gevent", "-w", "1", "--no-control-socket", "app:app", "--bind", "0.0.0.0:8000" ]

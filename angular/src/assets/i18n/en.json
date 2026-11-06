@@ -82,7 +82,8 @@
     "4003": "Somehow, you are trying to do an action on a game you are not part of.",
     "4004": "This game does not exist.",
     "4005": "The card you have picked is not an acceptable value of the current deck.",
-    "4006": "You are a spectator, you should not be able to pick a card."
+    "4006": "You are a spectator, you should not be able to pick a card.",
+    "4007": "The cards must be revealed before you can choose the final estimate."
   },
   "reconnect": {
     "attempt": "Lost connection. Attempting reconnection... ({{attempt}}/{{total}})",
@@ -99,6 +100,20 @@
   "estimates": {
     "title": "Stories per estimate",
     "total": "{{count}} estimated",
-    "empty": "No stories estimated yet. Finish a round with “New turn” to record its result."
+    "empty": "No stories estimated yet. Reveal the cards, then click “New turn” to record the result.",
+    "totalPoints": "Total: {{points}} points",
+    "history": "Show the {{count}} estimated stories",
+    "unnamed": "Untitled story {{number}}"
+  },
+  "story": {
+    "label": "Story",
+    "placeholder": "Name of the story being estimated (optional)"
+  },
+  "finalEstimate": {
+    "label": "Record as:",
+    "auto": "Most picked ({{value}})",
+    "autoNone": "Most picked (no votes)",
+    "skip": "Don't record",
+    "autoPlain": "Most picked"
   }
 }

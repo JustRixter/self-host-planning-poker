@@ -1,15 +1,16 @@
-import { Component, OnDestroy } from '@angular/core';
+import { Component, OnDestroy, ChangeDetectionStrategy } from '@angular/core';
 import { Title } from '@angular/platform-browser';
 import { TranslocoService } from '@jsverse/transloco';
 import { Subscription, switchMap } from 'rxjs';
 import { CurrentGameService } from './current-game.service';
 import { CardPickerComponent } from './card-picker/card-picker.component';
 import { TurnSummaryComponent } from './turn-summary/turn-summary.component';
-import { NgIf } from '@angular/common';
+
 import { CardTableComponent } from './card-table/card-table.component';
 import { NavPlayerInfoComponent } from '../navigation-bar/player-info/nav-player-info.component';
 import { NavGameInfoComponent } from '../navigation-bar/game-info/nav-game-info.component';
 import { NavGameNameComponent } from '../navigation-bar/game-name/nav-game-name.component';
+import { StoryNameComponent } from './story-name/story-name.component';
 import { EstimatesSummaryComponent } from './estimates-summary/estimates-summary.component';
 import { ContainerComponent } from '../shared/container/container.component';
 
@@ -18,17 +19,18 @@ import { ContainerComponent } from '../shared/container/container.component';
     templateUrl: './ongoing-game-page.component.html',
     styleUrls: ['./ongoing-game-page.component.scss'],
     standalone: true,
+    changeDetection: ChangeDetectionStrategy.Eager,
     imports: [
-      ContainerComponent,
-      NavGameNameComponent,
-      NavGameInfoComponent,
-      NavPlayerInfoComponent,
-      CardTableComponent,
-      EstimatesSummaryComponent,
-      NgIf,
-      TurnSummaryComponent,
-      CardPickerComponent
-    ]
+    ContainerComponent,
+    NavGameNameComponent,
+    NavGameInfoComponent,
+    NavPlayerInfoComponent,
+    CardTableComponent,
+    StoryNameComponent,
+    EstimatesSummaryComponent,
+    TurnSummaryComponent,
+    CardPickerComponent
+]
 })
 export default class OngoingGamePageComponent implements OnDestroy {
   private gameInfoSubscription: Subscription;

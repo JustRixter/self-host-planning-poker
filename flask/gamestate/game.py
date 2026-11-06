@@ -1,9 +1,15 @@
 from collections import Counter
-from typing import Optional
+from typing import Optional, Union
 
 from gamestate.deck import Deck
-from gamestate.exceptions import PlayerNotInGameError, InvalidCardValueError
+from gamestate.exceptions import PlayerNotInGameError, InvalidCardValueError, GameNotRevealedError
 from gamestate.player import Player
+
+MAX_STORY_NAME_LENGTH = 100
+
+# Values of Game.set_final_estimate() besides a card value
+AUTO = 'auto'  # record the most-picked card
+SKIP = 'skip'  # do not record anything for this turn
 
 
 class Game:
@@ -13,7 +19,10 @@ class Game:
         self.__state = {}
         self.__deck = deck
         self.__revealed = False
-        self.__estimates: Counter = Counter()
+        self.__story = ''
+        self.__final: Union[str, float] = AUTO
+        # One entry per estimated story: {'name': str, 'estimate': number}
+        self.__history: list[dict] = []
 
     def player_joins(self, uuid: str, player: Player):
         self.__state[uuid] = player
@@ -26,7 +35,7 @@ class Game:
         self.__deck = deck
         if existing_deck is not deck:
             # Estimates from another deck are not comparable, so start over
-            self.__estimates.clear()
+            self.__history.clear()
             self.__reset_turn()
 
     def get_deck(self) -> Deck:
@@ -45,23 +54,39 @@ class Game:
         if uuid not in self.__state.keys():
             raise PlayerNotInGameError(f'Player with UUID {uuid} is not in this game')
         return self.__state.get(uuid)
-        
+
     def player_picks(self, uuid: str, card: Optional[int]):
         if card is not None and card not in self.__deck.value:
             raise InvalidCardValueError(f'Card value {card} is not valid. Current deck is {self.__deck.name}')
         player: Player = self.get_player(uuid)
         player.set_hand(card)
 
+    def set_story_name(self, name: str) -> None:
+        self.__story = (name or '').strip()[:MAX_STORY_NAME_LENGTH]
+
+    def get_story_name(self) -> str:
+        return self.__story
+
+    def set_final_estimate(self, estimate: Union[str, float]) -> None:
+        """Overrides what is recorded when the turn ends: AUTO, SKIP or a card of the current deck"""
+        if not self.__revealed:
+            raise GameNotRevealedError('The cards must be revealed before choosing the final estimate')
+        if estimate not in (AUTO, SKIP) and estimate not in self.__deck.value:
+            raise InvalidCardValueError(f'Card value {estimate} is not valid. Current deck is {self.__deck.name}')
+        self.__final = estimate
+
     def end_turn(self) -> None:
         """Ends the turn, recording the story's estimate if the cards were revealed"""
         if self.__revealed:
-            estimate = self.__consensus_estimate()
+            estimate = self.__estimate_to_record()
             if estimate is not None:
-                self.__estimates[estimate] += 1
+                self.__history.append({'name': self.__story, 'estimate': self.__number(estimate)})
         self.__reset_turn()
 
     def __reset_turn(self) -> None:
         self.__revealed = False
+        self.__story = ''
+        self.__final = AUTO
         for player in self.__state.values():
             player.clear_hand()
 
@@ -74,13 +99,29 @@ class Game:
         top = max(counts.values())
         return max(card for card, count in counts.items() if count == top)
 
-    def get_estimates(self) -> dict:
-        """Number of stories estimated per card value, ordered by card value"""
-        return {self.__format_card(card): count for card, count in sorted(self.__estimates.items())}
+    def __estimate_to_record(self) -> Optional[float]:
+        if self.__final == SKIP:
+            return None
+        if self.__final == AUTO:
+            return self.__consensus_estimate()
+        return self.__final
 
     @staticmethod
-    def __format_card(card) -> str:
-        return str(int(card)) if float(card).is_integer() else str(card)
+    def __number(card: float) -> Union[int, float]:
+        return int(card) if float(card).is_integer() else card
+
+    def get_history(self) -> list[dict]:
+        return [dict(entry) for entry in self.__history]
+
+    def get_estimates(self) -> dict:
+        """Number of stories estimated per card value, ordered by card value"""
+        counts = Counter(entry['estimate'] for entry in self.__history)
+        return {str(card): count for card, count in sorted(counts.items())}
+
+    def get_total(self) -> Union[int, float]:
+        """Sum of the estimates of all the stories"""
+        total = sum(entry['estimate'] for entry in self.__history)
+        return round(total, 2)
 
     def is_game_empty(self) -> bool:
         return len(self.__state) == 0
@@ -105,9 +146,18 @@ class Game:
         self.__revealed = True
 
     def info(self) -> dict:
+        recorded = self.__estimate_to_record() if self.__revealed else None
+        mode = self.__final if self.__final in (AUTO, SKIP) else 'value'
         return {
             'name': self.name,
             'deck': self.__deck.name,
             'revealed': self.__revealed,
-            'estimates': self.get_estimates()
+            'story': self.__story,
+            'estimates': self.get_estimates(),
+            'history': self.get_history(),
+            'total': self.get_total(),
+            'finalEstimate': {
+                'mode': mode,
+                'value': None if recorded is None else self.__number(recorded)
+            }
         }

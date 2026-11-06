@@ -1,4 +1,4 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, ChangeDetectionStrategy } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
 import { ContainerComponent } from '../shared/container/container.component';
 import { PlayerNameFormComponent } from '../shared/player-name-form/player-name-form.component';
@@ -9,6 +9,7 @@ import { TranslocoDirective } from '@jsverse/transloco';
   standalone: true,
   selector: 'shpp-set-username-page',
   templateUrl: './set-username-page.component.html',
+  changeDetection: ChangeDetectionStrategy.Eager,
   imports: [TranslocoDirective, PlayerNameFormComponent, ContainerComponent, NavAppTitleComponent]
 })
 export default class SetUsernamePageComponent implements OnInit {

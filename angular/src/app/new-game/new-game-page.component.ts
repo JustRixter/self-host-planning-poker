@@ -1,4 +1,4 @@
-import { Component } from '@angular/core';
+import { Component, ChangeDetectionStrategy } from '@angular/core';
 import { Deck } from '../model/deck';
 import { HttpClient } from '@angular/common/http';
 import { environment } from '../../environments/environment';
@@ -14,6 +14,7 @@ import { PathLocationStrategy } from '@angular/common';
   selector: 'shpp-new-game-page',
   templateUrl: './new-game-page.component.html',
   styleUrls: [ './new-game-page.component.scss' ],
+  changeDetection: ChangeDetectionStrategy.Eager,
   imports: [
     GameFormComponent,
     ContainerComponent,

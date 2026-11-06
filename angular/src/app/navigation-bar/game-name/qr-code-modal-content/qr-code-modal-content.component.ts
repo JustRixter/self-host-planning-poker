@@ -1,4 +1,4 @@
-import { AfterViewInit, Component, ElementRef, inject, Input, ViewChild } from '@angular/core';
+import { AfterViewInit, Component, ElementRef, inject, Input, ViewChild, ChangeDetectionStrategy } from '@angular/core';
 import { NgbActiveModal } from "@ng-bootstrap/ng-bootstrap";
 import { TranslocoDirective } from "@jsverse/transloco";
 import QRCode from "qrcode"
@@ -7,6 +7,7 @@ import QRCode from "qrcode"
   selector: 'shpp-qr-code-modal-content',
   standalone: true,
   templateUrl: './qr-code-modal-content.component.html',
+  changeDetection: ChangeDetectionStrategy.Eager,
   imports: [
     TranslocoDirective
   ]

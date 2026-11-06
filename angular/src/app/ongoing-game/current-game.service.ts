@@ -2,9 +2,9 @@ import { inject, Injectable } from '@angular/core';
 import { Manager, Socket } from 'socket.io-client';
 import { environment } from '../../environments/environment';
 import { BehaviorSubject, filter, map, Observable, Subject } from 'rxjs';
-import { ErrorMessage, GameInfo, GameState } from '../model/events';
+import { ErrorMessage, FinalEstimateChoice, GameInfo, GameState } from '../model/events';
 import { Deck, decksDict } from '../model/deck';
-import { ActivatedRouteSnapshot, CanActivateFn, Router, RouterStateSnapshot, UrlTree } from '@angular/router';
+import { ActivatedRouteSnapshot, CanActivateFn, Router, UrlTree } from '@angular/router';
 import { TranslocoService } from '@jsverse/transloco';
 import { UserInformationService } from '../shared/user-info/user-information.service';
 import { ToastService } from '../shared/toast/toast.service';
@@ -144,6 +144,14 @@ export class CurrentGameService {
     this.socket.emit('set_deck', { deck: deck.name }, (response?: ErrorMessage) => this.handleError(response));
   }
 
+  public setStoryName(name: string): void {
+    this.socket.emit('set_story_name', { name: name }, (response?: ErrorMessage) => this.handleError(response));
+  }
+
+  public setFinalEstimate(estimate: FinalEstimateChoice): void {
+    this.socket.emit('set_final_estimate', { estimate: estimate }, (response?: ErrorMessage) => this.handleError(response));
+  }
+
   public pickCard(cardValue: number | null): void {
     this.socket.emit('pick_card', { card: cardValue }, (response?: ErrorMessage) => this.handleError(response));
   }
@@ -157,7 +165,7 @@ export class CurrentGameService {
   }
 
   private handleError(error?: ErrorMessage | any): void {
-    if (!!error) {
+    if (error) {
       if ('error' in error) {
         this.error(`errors.${error.code}`, { message: error.message });
       } else {
@@ -189,6 +197,6 @@ export class CurrentGameService {
 
 }
 
-export const canActivateGame: CanActivateFn = (route: ActivatedRouteSnapshot, state: RouterStateSnapshot) => {
+export const canActivateGame: CanActivateFn = (route: ActivatedRouteSnapshot) => {
   return inject(CurrentGameService).canActivate(route);
 }

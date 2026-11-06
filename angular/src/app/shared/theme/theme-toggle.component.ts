@@ -1,4 +1,4 @@
-import { Component } from '@angular/core';
+import { Component, ChangeDetectionStrategy } from '@angular/core';
 import { TranslocoDirective } from '@jsverse/transloco';
 import { ThemeService } from './theme.service';
 
@@ -6,6 +6,7 @@ import { ThemeService } from './theme.service';
   standalone: true,
   selector: 'shpp-theme-toggle',
   imports: [TranslocoDirective],
+  changeDetection: ChangeDetectionStrategy.Eager,
   template: `
     <button *transloco="let t; read 'theme'" type="button" class="btn btn-outline-light btn-sm ms-2"
             [attr.aria-label]="t('toggle', { mode: t(theme.preference) })"

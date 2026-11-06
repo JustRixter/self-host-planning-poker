@@ -9,10 +9,10 @@ export class UsernameSetService {
   canActivate(userInformation: UserInformationService,
               router: Router,
               state: RouterStateSnapshot): boolean | UrlTree {
-    if (!!userInformation.getName()) {
+    if (userInformation.getName()) {
       return true;
     } else {
-      let gameId = state.url.split('/')[2];
+      const gameId = state.url.split('/')[2];
       return router.parseUrl(`/set-username?gameId=${gameId}`)
     }
   }

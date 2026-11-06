@@ -1,8 +1,8 @@
-import { AfterViewInit, Component, ElementRef, OnDestroy, ViewChild } from '@angular/core';
-import { PlayerState } from '../../model/events';
+import { AfterViewInit, Component, ElementRef, OnDestroy, ViewChild, ChangeDetectionStrategy } from '@angular/core';
+import { FinalEstimate, FinalEstimateChoice, PlayerState } from '../../model/events';
 import { filter, map, Observable, Subscription, tap, withLatestFrom } from 'rxjs';
 import { Deck, decksDict, displayCardValue } from '../../model/deck';
-import { AsyncPipe, KeyValue, KeyValuePipe, NgClass, NgFor } from '@angular/common';
+import { AsyncPipe, KeyValue, KeyValuePipe, NgClass } from '@angular/common';
 import { CurrentGameService } from '../current-game.service';
 import confetti from 'canvas-confetti';
 import { TranslocoDecimalPipe, TranslocoPercentPipe } from '@jsverse/transloco-locale';
@@ -13,7 +13,8 @@ import { TranslocoDirective } from '@jsverse/transloco';
     templateUrl: './turn-summary.component.html',
     styleUrls: ['./turn-summary.component.scss'],
     standalone: true,
-    imports: [TranslocoDirective, NgFor, NgClass, AsyncPipe, KeyValuePipe, TranslocoDecimalPipe, TranslocoPercentPipe]
+    changeDetection: ChangeDetectionStrategy.Eager,
+    imports: [TranslocoDirective, NgClass, AsyncPipe, KeyValuePipe, TranslocoDecimalPipe, TranslocoPercentPipe]
 })
 export class TurnSummaryComponent implements AfterViewInit, OnDestroy {
   private subscriptions: Subscription[] = [];
@@ -28,6 +29,7 @@ export class TurnSummaryComponent implements AfterViewInit, OnDestroy {
   average = 0;
   agreement = 0;
   $counts: Observable<CardCount>;
+  finalEstimate$: Observable<FinalEstimate | undefined>;
   private $playerStates: Observable<PlayerState[]>;
   private $agreement: Observable<number>;
 
@@ -48,12 +50,14 @@ export class TurnSummaryComponent implements AfterViewInit, OnDestroy {
       map((playerStates: PlayerState[]) => playerStates.filter((state) => state.hand !== undefined && state.hand !== null))
     );
 
+    this.finalEstimate$ = this.currentGameService.gameInfo$.pipe(map((info) => info?.finalEstimate));
+
     this.$counts = this.$playerStates
     .pipe(map((players: PlayerState[]) =>
       players
       .map((player) => player.hand || 0)
       .reduce((previous, current) => {
-        let num = previous.get(current.toString()) || 0;
+        const num = previous.get(current.toString()) || 0;
         previous.set(current.toString(), num + 1);
         return previous;
       }, new Map() as CardCount)
@@ -64,19 +68,19 @@ export class TurnSummaryComponent implements AfterViewInit, OnDestroy {
       withLatestFrom(this.$playerStates),
       map(([counts, players]) => (Math.max(0, ...counts.values()) / players.length || 0)));
 
-    this.subscriptions.concat(
+    this.subscriptions.push(
       this.$playerStates.pipe(
         map((players: PlayerState[]) =>
           players.reduce((prev, current) => prev + (current.hand || 0), 0) / players.length || 0))
       .subscribe((value) => this.average = value));
 
-    this.subscriptions.concat(
+    this.subscriptions.push(
       this.$agreement
       .subscribe((value) => this.agreement = value));
   }
 
   ngAfterViewInit(): void {
-    this.subscriptions.concat(
+    this.subscriptions.push(
       this.$agreement
       .pipe(filter((value) => value === 1))
       .subscribe(() => this.fireConfettis()));
@@ -92,6 +96,11 @@ export class TurnSummaryComponent implements AfterViewInit, OnDestroy {
     } else {
       return 'text-success';
     }
+  }
+
+  onFinalEstimateChange(value: string): void {
+    const choice: FinalEstimateChoice = value === 'auto' || value === 'skip' ? value : Number(value);
+    this.currentGameService.setFinalEstimate(choice);
   }
 
   ngOnDestroy(): void {

@@ -1,4 +1,4 @@
-import { Component } from '@angular/core';
+import { Component, ChangeDetectionStrategy } from '@angular/core';
 import { getBrowserCultureLang, getBrowserLang, TranslocoService } from '@jsverse/transloco';
 import { TranslocoLocaleService } from '@jsverse/transloco-locale';
 import { RouterOutlet } from '@angular/router';
@@ -9,6 +9,7 @@ import { ToastsContainerComponent } from './shared/toast/toast-container.compone
     templateUrl: './app.component.html',
     styles: [],
     standalone: true,
+    changeDetection: ChangeDetectionStrategy.Eager,
     imports: [RouterOutlet, ToastsContainerComponent]
 })
 export class AppComponent {

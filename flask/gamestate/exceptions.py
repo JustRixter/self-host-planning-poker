@@ -24,3 +24,7 @@ class InvalidCardValueError(PlanningPokerException):
 
 class SpectatorCannotPlayError(PlanningPokerException):
     code = 4006
+
+
+class GameNotRevealedError(PlanningPokerException):
+    code = 4007

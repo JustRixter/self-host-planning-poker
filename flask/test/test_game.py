@@ -2,9 +2,15 @@ import unittest
 from unittest.mock import Mock
 
 from gamestate.deck import Deck
-from gamestate.exceptions import PlayerNotInGameError, InvalidCardValueError
-from gamestate.game import Game
+from gamestate.exceptions import PlayerNotInGameError, InvalidCardValueError, GameNotRevealedError
+from gamestate.game import Game, AUTO, SKIP
 from gamestate.player import Player
+
+
+EMPTY_INFO = {
+    'story': '', 'estimates': {}, 'history': [], 'total': 0,
+    'finalEstimate': {'mode': 'auto', 'value': None}
+}
 
 
 class GameTestCase(unittest.TestCase):
@@ -298,15 +304,15 @@ class GameTestCase(unittest.TestCase):
     def test_game_info(self):
         game_name1 = 'Fizz'
         game1 = Game(game_name1)
-        self.assertEqual(game1.info(), {'name': game_name1, 'deck': 'FIBONACCI', 'revealed': False, 'estimates': {}})
+        self.assertEqual(game1.info(), {'name': game_name1, 'deck': 'FIBONACCI', 'revealed': False, **EMPTY_INFO})
 
         game_name2 = 'Buzz'
         game2 = Game(game_name2, Deck.POWERS)
-        self.assertEqual(game2.info(), {'name': game_name2, 'deck': 'POWERS', 'revealed': False, 'estimates': {}})
+        self.assertEqual(game2.info(), {'name': game_name2, 'deck': 'POWERS', 'revealed': False, **EMPTY_INFO})
         game2.reveal_hands()
-        self.assertEqual(game2.info(), {'name': game_name2, 'deck': 'POWERS', 'revealed': True, 'estimates': {}})
+        self.assertEqual(game2.info(), {'name': game_name2, 'deck': 'POWERS', 'revealed': True, **EMPTY_INFO})
         game2.end_turn()
-        self.assertEqual(game2.info(), {'name': game_name2, 'deck': 'POWERS', 'revealed': False, 'estimates': {}})
+        self.assertEqual(game2.info(), {'name': game_name2, 'deck': 'POWERS', 'revealed': False, **EMPTY_INFO})
 
     def _game_with_votes(self, deck, *hands, spectator_hand=None):
         game = Game('Estimates', deck)
@@ -348,6 +354,77 @@ class GameTestCase(unittest.TestCase):
         self.assertEqual(game.get_estimates(), {'5': 1})
         game.set_deck(Deck.POWERS)
         self.assertEqual(game.get_estimates(), {})
+
+    def test_story_names_and_history(self):
+        game = self._game_with_votes(Deck.FIBONACCI, 5, 5)
+        game.set_story_name('  Login page  ')
+        self.assertEqual(game.get_story_name(), 'Login page')
+        game.reveal_hands()
+        game.end_turn()
+        self.assertEqual(game.get_story_name(), '')
+        for pid in ('p0', 'p1'):
+            game.player_picks(pid, 8)
+        game.reveal_hands()
+        game.end_turn()
+        self.assertEqual(game.get_history(), [{'name': 'Login page', 'estimate': 5}, {'name': '', 'estimate': 8}])
+        self.assertEqual(game.get_total(), 13)
+
+    def test_story_name_is_truncated(self):
+        game = Game('Estimates')
+        game.set_story_name('x' * 500)
+        self.assertEqual(len(game.get_story_name()), 100)
+
+    def test_total_with_decimals(self):
+        game = self._game_with_votes(Deck.MODIFIED_FIBONACCI, 0.5)
+        for _ in range(3):
+            game.player_picks('p0', 0.5)
+            game.reveal_hands()
+            game.end_turn()
+        self.assertEqual(game.get_total(), 1.5)
+        self.assertEqual(game.get_estimates(), {'0.5': 3})
+
+    def test_final_estimate_override(self):
+        game = self._game_with_votes(Deck.FIBONACCI, 3, 13)
+        game.reveal_hands()
+        self.assertEqual(game.info()['finalEstimate'], {'mode': 'auto', 'value': 13})
+        game.set_final_estimate(5)
+        self.assertEqual(game.info()['finalEstimate'], {'mode': 'value', 'value': 5})
+        game.end_turn()
+        self.assertEqual(game.get_history(), [{'name': '', 'estimate': 5}])
+        self.assertEqual(game.info()['finalEstimate'], {'mode': 'auto', 'value': None})
+
+    def test_final_estimate_skip(self):
+        game = self._game_with_votes(Deck.FIBONACCI, 3, 3)
+        game.reveal_hands()
+        game.set_final_estimate(SKIP)
+        self.assertEqual(game.info()['finalEstimate'], {'mode': 'skip', 'value': None})
+        game.end_turn()
+        self.assertEqual(game.get_history(), [])
+        # ...and the next turn goes back to the automatic estimate
+        game.player_picks('p0', 3)
+        game.reveal_hands()
+        game.set_final_estimate(AUTO)
+        game.end_turn()
+        self.assertEqual(game.get_estimates(), {'3': 1})
+
+    def test_final_estimate_validation(self):
+        game = self._game_with_votes(Deck.FIBONACCI, 3)
+        with self.assertRaises(GameNotRevealedError):
+            game.set_final_estimate(3)
+        game.reveal_hands()
+        with self.assertRaises(InvalidCardValueError):
+            game.set_final_estimate(4)
+        with self.assertRaises(InvalidCardValueError):
+            game.set_final_estimate('whatever')
+
+    def test_deck_change_clears_history_and_story(self):
+        game = self._game_with_votes(Deck.FIBONACCI, 5)
+        game.reveal_hands()
+        game.end_turn()
+        game.set_story_name('Old deck story')
+        game.set_deck(Deck.POWERS)
+        self.assertEqual(game.get_history(), [])
+        self.assertEqual(game.get_story_name(), '')
 
 
 if __name__ == '__main__':
