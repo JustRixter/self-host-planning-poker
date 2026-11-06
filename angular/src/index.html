@@ -15,8 +15,17 @@
   <meta name="msapplication-TileColor" content="#2d89ef">
   <meta name="msapplication-config" content="/assets/favicon/browserconfig.xml">
   <meta name="theme-color" content="#ffffff">
+  <script>
+    // Apply the saved theme before first paint to avoid a light flash
+    (function () {
+      var pref = 'auto';
+      try { pref = localStorage.getItem('shpp-theme') || 'auto'; } catch (e) {}
+      var dark = pref === 'dark' || (pref === 'auto' && window.matchMedia('(prefers-color-scheme: dark)').matches);
+      document.documentElement.setAttribute('data-bs-theme', dark ? 'dark' : 'light');
+    })();
+  </script>
 </head>
 <body>
-  <shpp-root />
+  <shpp-root></shpp-root>
 </body>
 </html>

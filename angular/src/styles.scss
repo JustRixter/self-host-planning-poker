@@ -2,7 +2,7 @@
 
 $primary: #198754;
 $enable-shadows: true;
-$color-mode-type: media-query;
+$color-mode-type: data;
 
 /* Importing Bootstrap SCSS file. */
 @import 'bootstrap/scss/bootstrap';
@@ -38,7 +38,8 @@ $color-mode-type: media-query;
   display: flex;
   align-items: center;
   justify-content: center;
-  background-color: $body-bg;
+  background-color: var(--bs-body-bg);
+  color: var(--bs-body-color);
   transition: transform 200ms ease-in-out, background-color 100ms ease-in, outline-color 100ms ease-in;
 
   @media (prefers-reduced-motion: reduce) {
@@ -49,7 +50,7 @@ $color-mode-type: media-query;
     box-shadow: 0 0 15px 0 $gray-400;
   }
 
-  @include color-mode(dark) {
+  [data-bs-theme="dark"] & {
     background-color: $gray-800;
     color: white;
     &:not(.card-disabled, .dashed) {
@@ -67,7 +68,7 @@ $color-mode-type: media-query;
   background: $gray-200;
   outline-color: $gray-600;
   color: $gray-700;
-  @include color-mode(dark) {
+  [data-bs-theme="dark"] & {
     background: $gray-800;
     color: $gray-600;
   }

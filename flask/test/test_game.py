@@ -4,6 +4,7 @@ from unittest.mock import Mock
 from gamestate.deck import Deck
 from gamestate.exceptions import PlayerNotInGameError, InvalidCardValueError
 from gamestate.game import Game
+from gamestate.player import Player
 
 
 class GameTestCase(unittest.TestCase):
@@ -297,15 +298,56 @@ class GameTestCase(unittest.TestCase):
     def test_game_info(self):
         game_name1 = 'Fizz'
         game1 = Game(game_name1)
-        self.assertEqual(game1.info(), {'name': game_name1, 'deck': 'FIBONACCI', 'revealed': False})
+        self.assertEqual(game1.info(), {'name': game_name1, 'deck': 'FIBONACCI', 'revealed': False, 'estimates': {}})
 
         game_name2 = 'Buzz'
         game2 = Game(game_name2, Deck.POWERS)
-        self.assertEqual(game2.info(), {'name': game_name2, 'deck': 'POWERS', 'revealed': False})
+        self.assertEqual(game2.info(), {'name': game_name2, 'deck': 'POWERS', 'revealed': False, 'estimates': {}})
         game2.reveal_hands()
-        self.assertEqual(game2.info(), {'name': game_name2, 'deck': 'POWERS', 'revealed': True})
+        self.assertEqual(game2.info(), {'name': game_name2, 'deck': 'POWERS', 'revealed': True, 'estimates': {}})
         game2.end_turn()
-        self.assertEqual(game2.info(), {'name': game_name2, 'deck': 'POWERS', 'revealed': False})
+        self.assertEqual(game2.info(), {'name': game_name2, 'deck': 'POWERS', 'revealed': False, 'estimates': {}})
+
+    def _game_with_votes(self, deck, *hands, spectator_hand=None):
+        game = Game('Estimates', deck)
+        for i, hand in enumerate(hands):
+            game.player_joins(f'p{i}', Player(f'P{i}', False))
+            if hand is not None:
+                game.player_picks(f'p{i}', hand)
+        return game
+
+    def test_estimates_recorded_on_end_turn(self):
+        game = self._game_with_votes(Deck.FIBONACCI, 5, 5, 8)
+        game.reveal_hands()
+        game.end_turn()
+        self.assertEqual(game.get_estimates(), {'5': 1})
+        for pid, card in (('p0', 3), ('p1', 3), ('p2', 5)):
+            game.player_picks(pid, card)
+        game.reveal_hands()
+        game.end_turn()
+        game.reveal_hands()  # nobody voted: nothing recorded
+        game.end_turn()
+        self.assertEqual(game.get_estimates(), {'3': 1, '5': 1})
+
+    def test_estimates_tie_picks_highest(self):
+        game = self._game_with_votes(Deck.MODIFIED_FIBONACCI, 0.5, 3)
+        game.reveal_hands()
+        game.end_turn()
+        self.assertEqual(game.get_estimates(), {'3': 1})
+
+    def test_estimates_not_recorded_without_reveal(self):
+        game = self._game_with_votes(Deck.FIBONACCI, 5, 5)
+        game.end_turn()
+        self.assertEqual(game.get_estimates(), {})
+
+    def test_estimates_reset_when_deck_changes(self):
+        game = self._game_with_votes(Deck.FIBONACCI, 5)
+        game.reveal_hands()
+        game.end_turn()
+        game.set_deck(Deck.FIBONACCI)
+        self.assertEqual(game.get_estimates(), {'5': 1})
+        game.set_deck(Deck.POWERS)
+        self.assertEqual(game.get_estimates(), {})
 
 
 if __name__ == '__main__':

@@ -2,8 +2,6 @@
 @import "bootstrap/scss/variables";
 @import "bootstrap/scss/mixins";
 
-$color-mode-type: media-query;
-
 :host {
   flex-grow: 1;
   display: flex;
@@ -14,8 +12,7 @@ $color-mode-type: media-query;
   border-top: 1px solid $gray-300;
   box-shadow: 0 0 10px 0 $gray-400;
 
-  @include color-mode(dark) {
-    // background-color: $gray-900 !important;
+  :host-context([data-bs-theme='dark']) & {
     border-top-color: $gray-800 !important;
     box-shadow: 0 0 10px 0 $gray-800 !important;
   }

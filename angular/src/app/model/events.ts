@@ -2,6 +2,8 @@ export interface GameInfo {
   name: string;
   deck: string;
   revealed: boolean;
+  /** Number of stories estimated so far, per card value */
+  estimates?: Record<string, number>;
   playerId?: string;
 }
 
