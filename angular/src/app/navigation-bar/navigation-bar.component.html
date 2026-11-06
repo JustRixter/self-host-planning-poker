@@ -6,6 +6,8 @@
       </a>
     </div>
     <ng-content></ng-content>
-    <shpp-theme-toggle class="ms-auto" />
+    @if (themeToggle) {
+      <shpp-theme-toggle class="ms-auto" />
+    }
   </div>
 </nav>

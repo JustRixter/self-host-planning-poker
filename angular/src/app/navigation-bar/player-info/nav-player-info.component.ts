@@ -3,13 +3,14 @@ import { NgbOffcanvas, NgbTooltip } from '@ng-bootstrap/ng-bootstrap';
 import { UserInformationService } from '../../shared/user-info/user-information.service';
 import { PlayerNameFormComponent } from '../../shared/player-name-form/player-name-form.component';
 import { TranslocoDirective } from '@jsverse/transloco';
+import { ThemeToggleComponent } from '../../shared/theme/theme-toggle.component';
 
 @Component({
     selector: 'shpp-nav-player-info',
     templateUrl: './nav-player-info.component.html',
     standalone: true,
     changeDetection: ChangeDetectionStrategy.Eager,
-    imports: [TranslocoDirective, PlayerNameFormComponent, NgbTooltip]
+    imports: [TranslocoDirective, PlayerNameFormComponent, NgbTooltip, ThemeToggleComponent]
 })
 export class NavPlayerInfoComponent {
   constructor(public userInformation: UserInformationService,
