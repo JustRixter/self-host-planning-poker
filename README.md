@@ -2,15 +2,14 @@
 
 A hassle-free Planning Poker application to deploy on your NAS.
 
-[![Docker Hub](https://img.shields.io/docker/v/axeleroy/self-host-planning-poker?sort=semver&logo=docker)](https://hub.docker.com/r/axeleroy/self-host-planning-poker/tags)
-[![Docker Hub](https://img.shields.io/docker/pulls/axeleroy/self-host-planning-poker?logo=docker)](https://hub.docker.com/r/axeleroy/self-host-planning-poker/tags)
-[![GitHub release](https://img.shields.io/github/v/release/axeleroy/self-host-planning-poker?logo=github&logoColor=959DA5)](https://github.com/axeleroy/self-host-planning-poker/pkgs/container/self-host-planning-poker)
+> **Fork notice:** this is a maintained fork of [axeleroy/self-host-planning-poker](https://github.com/axeleroy/self-host-planning-poker), which has been archived.
+> It updates the dependencies to their latest versions (Angular 22, Flask 3, Python 3.13) and adds a dark theme and a
+> per-estimate story counter. Many thanks to [Axel Leroy](https://github.com/axeleroy) for the original project (MIT license).
 
-[![GitHub last commit](https://img.shields.io/github/last-commit/axeleroy/self-host-planning-poker?logo=github&logoColor=959DA5)](https://github.com/axeleroy/self-host-planning-poker/commits/main)
-[![License](https://img.shields.io/github/license/axeleroy/self-host-planning-poker?logo=github&logoColor=959DA5)](https://github.com/axeleroy/self-host-planning-poker/blob/main/LICENSE)
-[![Tests](https://github.com/axeleroy/self-host-planning-poker/actions/workflows/tests.yml/badge.svg)](https://github.com/axeleroy/self-host-planning-poker/actions/workflows/tests.yml)
-[![Docker build](https://github.com/axeleroy/self-host-planning-poker/actions/workflows/publish.yml/badge.svg)](https://github.com/axeleroy/self-host-planning-poker/actions/workflows/publish.yml)
-[![Crowdin](https://badges.crowdin.net/self-host-planning-poker/localized.svg)](https://crowdin.com/project/self-host-planning-poker)
+[![GitHub last commit](https://img.shields.io/github/last-commit/JustRixter/self-host-planning-poker?logo=github&logoColor=959DA5)](https://github.com/JustRixter/self-host-planning-poker/commits/main)
+[![License](https://img.shields.io/github/license/JustRixter/self-host-planning-poker?logo=github&logoColor=959DA5)](https://github.com/JustRixter/self-host-planning-poker/blob/main/LICENSE)
+[![Tests](https://github.com/JustRixter/self-host-planning-poker/actions/workflows/tests.yml/badge.svg)](https://github.com/JustRixter/self-host-planning-poker/actions/workflows/tests.yml)
+[![Docker build](https://github.com/JustRixter/self-host-planning-poker/actions/workflows/publish.yml/badge.svg)](https://github.com/JustRixter/self-host-planning-poker/actions/workflows/publish.yml)
 
 ## What is it?
 
@@ -23,17 +22,24 @@ It features:
   * Spectator mode
   * Responsive layout
   * Vote summary
-  * Translations _(English, French, German, Italian and Polish. [Contributions welcome!](#im-a-user-and-want-to-contribute-translations))_
+  * Dark theme (follows your system by default, switchable from the navigation bar)
+  * Stories per estimate: each time you finish a round with "New turn", the most-picked card is counted as that story's
+    estimate and the totals are shown on the game page (kept in memory, reset when the deck changes or the server restarts)
+  * Translations _(inherited from the original project; new strings of this fork are English only and fall back to English)_
  
 It does not have fancy features like issues management, Jira integration or timers.
 
 ## Screenshots
-<a href="https://github.com/axeleroy/self-host-planning-poker/blob/main/assets/screenshot.png"><img alt="Application screenshot with cards face down" src="https://github.com/axeleroy/self-host-planning-poker/blob/main/assets/screenshot.png" width="412px"></a>
-<a href="https://github.com/axeleroy/self-host-planning-poker/blob/main/assets/screenshot.png"><img alt="Application screenshot with cards revealed" src="https://github.com/axeleroy/self-host-planning-poker/blob/main/assets/screenshot-revealed.png" width="412px"></a>
+_Screenshots are from the original project and do not show the dark theme._
+
+<a href="assets/screenshot.png"><img alt="Application screenshot with cards face down" src="assets/screenshot.png" width="412px"></a>
+<a href="assets/screenshot.png"><img alt="Application screenshot with cards revealed" src="assets/screenshot-revealed.png" width="412px"></a>
 
 ## Deployment
 
-Deploying the application is easy as it's self-contained in a single container.
+Deploying the application is easy as it's self-contained in a single container. Images are published to the
+GitHub Container Registry by this repository's [workflow](.github/workflows/publish.yml) on each push to `main` and on `vX.Y.Z` tags.
+If the package is private, run `docker login ghcr.io` first.
 All you need is to create a volume to persist the games settings (ID, name and deck).
 
 ### Docker
@@ -41,7 +47,7 @@ All you need is to create a volume to persist the games settings (ID, name and d
 docker run \
   -v planning-poker-data:/data \
   -p 8000:8000 \
-  axeleroy/self-host-planning-poker:latest
+  ghcr.io/justrixter/self-host-planning-poker:latest
 ```
 
 ### docker-compose
@@ -49,7 +55,7 @@ docker run \
 version: "3"
 services:
   planning-poker:
-    image: axeleroy/self-host-planning-poker:latest
+    image: ghcr.io/justrixter/self-host-planning-poker:latest
     ports:
       - 8000:8000
     volumes:
@@ -74,20 +80,8 @@ See [Customizing the application's style and icon](https://github.com/axeleroy/s
 
 ## Getting involved
 
-### I'm a developer and I want to help
-
-You are welcome to open Pull Requests resolving issues in the [Project](https://github.com/users/axeleroy/projects/1/views/1) or 
-tagged [pr-welcome](https://github.com/axeleroy/self-host-planning-poker/issues?q=is%3Aissue+is%3Aopen+label%3Apr-welcome).
-Don't forget to mention the issue you want to close 😉
-
-### I'm a user and I need help / I encountered a bug / I have a feature request
-
-[Open an issue](https://github.com/axeleroy/self-host-planning-poker/issues/new) and I'll take a look at it.
-
-### I'm a user and want to contribute translations
-
-There is a [Crowdin project](https://crowdin.com/project/self-host-planning-poker) that lets you add translations for
-your language. If your language is not available, feel free to contact me over Crowdin.
+[Open an issue](https://github.com/JustRixter/self-host-planning-poker/issues/new) or a Pull Request on this fork. The original project's issues are
+closed since it is archived.
 
 ## Development
 
@@ -131,12 +125,12 @@ python -m unittest
 > docker run --rm -it \
 >   -v $(pwd)/flask:/app \
 >   -p 5000:5000 \
->   python:3.11-slim \
+>   python:3.13-slim \
 >   bash -c "cd /app; pip install -r requirements.txt; FLASK_DEBUG=1 gunicorn --worker-class eventlet -w 1 app:app --bind 0.0.0.0:5000"
 > ```
 > </details>
 
-First make sure that [Node.js](https://nodejs.org/en/) (preferably LTS) is installed.
+First make sure that [Node.js](https://nodejs.org/en/) 24.15 or newer (required by Angular 22; see `angular/.nvmrc`) is installed.
 Then, install dependencies and launch the development server
 
 ```sh
@@ -149,7 +143,7 @@ npm start
 
 ```sh
 # After checking out the project
-docker build . -t axeleroy/self-host-planning-poker:custom
+docker build . -t self-host-planning-poker:custom
 # Alternatively, if you don't want to checkout the project
-docker build https://github.com/axeleroy/self-host-planning-poker -t axeleroy/self-host-planning-poker:custom
+docker build https://github.com/JustRixter/self-host-planning-poker.git -t self-host-planning-poker:custom
 ```
