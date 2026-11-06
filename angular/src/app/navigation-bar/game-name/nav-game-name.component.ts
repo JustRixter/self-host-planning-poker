@@ -4,7 +4,7 @@ import { GameInfo } from '../../model/events';
 import { Subscription } from 'rxjs';
 import { ToastService } from '../../shared/toast/toast.service';
 import { Clipboard } from '@angular/cdk/clipboard';
-import { TranslocoDirective, TranslocoService } from '@ngneat/transloco';
+import { TranslocoDirective, TranslocoService } from '@jsverse/transloco';
 import { NgbModal, NgbTooltip } from '@ng-bootstrap/ng-bootstrap';
 import { NgIf } from '@angular/common';
 import { QrCodeModalContentComponent } from "./qr-code-modal-content/qr-code-modal-content.component";

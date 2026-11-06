@@ -1,3 +1,4 @@
+from collections import Counter
 from typing import Optional
 
 from gamestate.deck import Deck
@@ -12,6 +13,7 @@ class Game:
         self.__state = {}
         self.__deck = deck
         self.__revealed = False
+        self.__estimates: Counter = Counter()
 
     def player_joins(self, uuid: str, player: Player):
         self.__state[uuid] = player
@@ -23,7 +25,9 @@ class Game:
         existing_deck = self.__deck
         self.__deck = deck
         if existing_deck is not deck:
-            self.end_turn()
+            # Estimates from another deck are not comparable, so start over
+            self.__estimates.clear()
+            self.__reset_turn()
 
     def get_deck(self) -> Deck:
         return self.__deck
@@ -49,9 +53,34 @@ class Game:
         player.set_hand(card)
 
     def end_turn(self) -> None:
+        """Ends the turn, recording the story's estimate if the cards were revealed"""
+        if self.__revealed:
+            estimate = self.__consensus_estimate()
+            if estimate is not None:
+                self.__estimates[estimate] += 1
+        self.__reset_turn()
+
+    def __reset_turn(self) -> None:
         self.__revealed = False
         for player in self.__state.values():
             player.clear_hand()
+
+    def __consensus_estimate(self) -> Optional[float]:
+        """Most picked card; on a tie, the highest value wins. None if nobody picked a card."""
+        hands = [p.get_hand() for p in self.get_non_spectator_players() if p.has_picked_card()]
+        if not hands:
+            return None
+        counts = Counter(hands)
+        top = max(counts.values())
+        return max(card for card, count in counts.items() if count == top)
+
+    def get_estimates(self) -> dict:
+        """Number of stories estimated per card value, ordered by card value"""
+        return {self.__format_card(card): count for card, count in sorted(self.__estimates.items())}
+
+    @staticmethod
+    def __format_card(card) -> str:
+        return str(int(card)) if float(card).is_integer() else str(card)
 
     def is_game_empty(self) -> bool:
         return len(self.__state) == 0
@@ -79,5 +108,6 @@ class Game:
         return {
             'name': self.name,
             'deck': self.__deck.name,
-            'revealed': self.__revealed
+            'revealed': self.__revealed,
+            'estimates': self.get_estimates()
         }

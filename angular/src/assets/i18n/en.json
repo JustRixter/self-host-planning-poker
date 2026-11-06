@@ -89,5 +89,16 @@
     "error": "Could not reconnect. Reason: \"{{error}}\".",
     "failed": "Could not reconnect after {{attempts}} attempts.",
     "success": "Successfully reconnected after {{attempts}} attempts."
+  },
+  "theme": {
+    "toggle": "Theme: {{mode}} (click to change)",
+    "auto": "system",
+    "light": "light",
+    "dark": "dark"
+  },
+  "estimates": {
+    "title": "Stories per estimate",
+    "total": "{{count}} estimated",
+    "empty": "No stories estimated yet. Finish a round with “New turn” to record its result."
   }
 }

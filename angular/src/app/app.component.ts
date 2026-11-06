@@ -1,6 +1,6 @@
 import { Component } from '@angular/core';
-import { getBrowserCultureLang, getBrowserLang, TranslocoService } from '@ngneat/transloco';
-import { TranslocoLocaleService } from '@ngneat/transloco-locale';
+import { getBrowserCultureLang, getBrowserLang, TranslocoService } from '@jsverse/transloco';
+import { TranslocoLocaleService } from '@jsverse/transloco-locale';
 import { RouterOutlet } from '@angular/router';
 import { ToastsContainerComponent } from './shared/toast/toast-container.component';
 

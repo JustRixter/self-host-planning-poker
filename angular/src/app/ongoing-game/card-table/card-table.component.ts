@@ -5,7 +5,7 @@ import { Deck } from '../../model/deck';
 import { CurrentGameService } from '../current-game.service';
 import { PlayerHandComponent } from './player-hand/player-hand.component';
 import { KeyValuePipe, NgFor } from '@angular/common';
-import { TranslocoDirective } from '@ngneat/transloco';
+import { TranslocoDirective } from '@jsverse/transloco';
 
 @Component({
     selector: 'shpp-card-table',

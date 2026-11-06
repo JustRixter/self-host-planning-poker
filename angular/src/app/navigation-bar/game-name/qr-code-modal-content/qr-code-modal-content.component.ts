@@ -1,6 +1,6 @@
 import { AfterViewInit, Component, ElementRef, inject, Input, ViewChild } from '@angular/core';
 import { NgbActiveModal } from "@ng-bootstrap/ng-bootstrap";
-import { TranslocoDirective } from "@ngneat/transloco";
+import { TranslocoDirective } from "@jsverse/transloco";
 import QRCode from "qrcode"
 
 @Component({

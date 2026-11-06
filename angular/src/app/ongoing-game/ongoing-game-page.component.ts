@@ -1,6 +1,6 @@
 import { Component, OnDestroy } from '@angular/core';
 import { Title } from '@angular/platform-browser';
-import { TranslocoService } from '@ngneat/transloco';
+import { TranslocoService } from '@jsverse/transloco';
 import { Subscription, switchMap } from 'rxjs';
 import { CurrentGameService } from './current-game.service';
 import { CardPickerComponent } from './card-picker/card-picker.component';
@@ -10,6 +10,7 @@ import { CardTableComponent } from './card-table/card-table.component';
 import { NavPlayerInfoComponent } from '../navigation-bar/player-info/nav-player-info.component';
 import { NavGameInfoComponent } from '../navigation-bar/game-info/nav-game-info.component';
 import { NavGameNameComponent } from '../navigation-bar/game-name/nav-game-name.component';
+import { EstimatesSummaryComponent } from './estimates-summary/estimates-summary.component';
 import { ContainerComponent } from '../shared/container/container.component';
 
 @Component({
@@ -23,6 +24,7 @@ import { ContainerComponent } from '../shared/container/container.component';
       NavGameInfoComponent,
       NavPlayerInfoComponent,
       CardTableComponent,
+      EstimatesSummaryComponent,
       NgIf,
       TurnSummaryComponent,
       CardPickerComponent

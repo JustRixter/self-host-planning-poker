@@ -1,0 +1,14 @@
+<section class="container pb-3" *transloco="let t; read 'estimates'" aria-labelledby="estimates-title">
+  <ng-container *ngIf="view$ | async as view">
+    <h2 id="estimates-title" class="fs-6 text-muted text-center mb-2">
+      {{ t('title') }}<span *ngIf="view.total > 0"> · {{ t('total', { count: view.total }) }}</span>
+    </h2>
+    <p *ngIf="view.rows.length === 0" class="text-center text-muted small mb-0">{{ t('empty') }}</p>
+    <ul *ngIf="view.rows.length > 0" class="list-unstyled d-flex flex-wrap justify-content-center gap-2 mb-0">
+      <li *ngFor="let row of view.rows" class="border rounded px-3 py-1 text-center bg-body-tertiary">
+        <span class="fw-bold fs-5">{{ row.display }}</span>
+        <span class="text-muted ms-2">× {{ row.stories }}</span>
+      </li>
+    </ul>
+  </ng-container>
+</section>
