@@ -9,15 +9,15 @@
 // Below the buttons on small screens; on wide ones, in the free space to the right of the buttons
 .departures {
   align-self: center;
-  width: min(20rem, 100% - 2rem);
-  margin-bottom: 1.5rem;
+  width: min(24rem, 100% - 2rem);
+  margin-bottom: 1.25rem;
 
   // Bootstrap's `xl` breakpoint
   @media (min-width: 1200px) {
     position: absolute;
     right: 1.5rem;
-    bottom: 1.5rem;
-    width: 15rem;
+    bottom: 1.75rem;
+    width: 16rem;
     margin: 0;
   }
 

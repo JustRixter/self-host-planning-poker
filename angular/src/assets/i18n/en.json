@@ -116,7 +116,7 @@
     "countOne": "1 story"
   },
   "departures": {
-    "left": "{{name}} left the game",
-    "dismiss": "Dismiss"
+    "left": "{{names}} left",
+    "more": "{{count}} more"
   }
 }
