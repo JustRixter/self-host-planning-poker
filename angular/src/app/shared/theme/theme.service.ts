@@ -26,9 +26,9 @@ export class ThemeService {
   private load(): ThemePreference {
     try {
       const stored = localStorage.getItem(STORAGE_KEY);
-      return ORDER.includes(stored as ThemePreference) ? stored as ThemePreference : 'auto';
+      return ORDER.includes(stored as ThemePreference) ? stored as ThemePreference : 'dark';
     } catch {
-      return 'auto';
+      return 'dark';
     }
   }
 
