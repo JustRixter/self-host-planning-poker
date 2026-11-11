@@ -7,8 +7,9 @@ which holds the games in memory.
 import json
 from typing import Any, Callable, Optional
 
-from gamestate.deck import card_from_label
+from gamestate.deck import card_from_label, Deck
 from gamestate.exceptions import PlanningPokerException, InvalidCardValueError
+from gamestate.game import Game
 from gamestate.game_manager import GameManager
 from rooms_api import parse_agent_link, room_view, stories_view, backlog_view, to_markdown, to_csv
 
@@ -17,7 +18,10 @@ SERVER_INFO = {'name': 'self-host-planning-poker', 'title': 'Planning Poker', 'v
 
 INSTRUCTIONS = """\
 Planning Poker rooms where a team estimates stories by voting with cards.
-Every tool takes the room as its agent link: https://<server>/game/<room>?agent=<key>. The players of a room give
+create_room creates a room for the team and returns two links: give the `link` to the players, and keep the
+`agent_link` for the next tools. Only create a room when the user asks for a new one: reuse the room they mention.
+Rooms nobody opens for a while are deleted.
+Every other tool takes the room as its agent link: https://<server>/game/<room>?agent=<key>. The players of a room give
 it once they turn on "AI agent access" in the room; the link to join the room is not enough. If a tool answers that
 agents are not allowed, ask the user for the agent link of the room.
 Stories waiting to be estimated are in the backlog: the first one is estimated at the next vote, and the
@@ -35,14 +39,15 @@ STORY_ID_PROPERTY = {'type': 'integer', 'description': 'The id of the story (not
 
 
 def _tool(name: str, title: str, description: str, properties: Optional[dict] = None,
-          required: Optional[list] = None, read_only=False, destructive=False, idempotent=False) -> dict:
+          required: Optional[list] = None, read_only=False, destructive=False, idempotent=False,
+          takes_room=True) -> dict:
     return {
         'name': name,
         'title': title,
         'description': description,
         'inputSchema': {
             'type': 'object',
-            'properties': {'room': ROOM_PROPERTY, **(properties or {})},
+            'properties': {**({'room': ROOM_PROPERTY} if takes_room else {}), **(properties or {})},
             'required': required or [],
             'additionalProperties': False,
         },
@@ -56,7 +61,32 @@ def _tool(name: str, title: str, description: str, properties: Optional[dict] = 
     }
 
 
+STORIES_PROPERTY = {
+    'type': 'array',
+    'minItems': 1,
+    'maxItems': 200,
+    'items': {
+        'type': 'object',
+        'properties': {
+            'name': {'type': 'string', 'description': 'Title of the story (100 characters at most)'},
+            'ref': {'type': 'string', 'description': 'Key of the issue in a tracker, such as ABC-123'},
+            'url': {'type': 'string', 'description': 'Link to the issue (http or https)'},
+        },
+        'additionalProperties': False,
+    },
+}
+
 TOOLS = [
+    _tool('create_room', 'Create a room',
+          'Creates a room where the team estimates stories, with AI agents let in, and optionally fills its backlog. '
+          'Returns `link`, to give to the players, and `agent_link`, the room argument of the other tools (do not '
+          'give it to the players: it lets agents in). Only create a room when the user asks for a new one.',
+          {'name': {'type': 'string', 'description': 'Name of the room, such as "Sprint 43"'},
+           'deck': {'type': 'string', 'enum': [deck.name for deck in Deck], 'default': 'FIBONACCI',
+                    'description': 'The cards: FIBONACCI, MODIFIED_FIBONACCI, POWERS (of 2), TRUST_VOTE (0 to 5) or '
+                                   'T_SHIRTS (XXS to XXL)'},
+           'stories': {**STORIES_PROPERTY, 'description': 'Stories to put in the backlog, in order'}},
+          ['name'], takes_room=False),
     _tool('get_room', 'Get room',
           'Overview of a room: name, deck and its cards, players (and whether they voted), whether the cards are '
           'revealed, the story being estimated, the size of the backlog and the total of the estimates.',
@@ -72,20 +102,7 @@ TOOLS = [
     _tool('add_to_backlog', 'Add stories to the backlog',
           'Adds stories at the end of the backlog. A story whose ref is already in the room is skipped, so it is '
           'safe to send the same issues again. The players see the backlog change at once.',
-          {'stories': {
-              'type': 'array',
-              'minItems': 1,
-              'maxItems': 200,
-              'items': {
-                  'type': 'object',
-                  'properties': {
-                      'name': {'type': 'string', 'description': 'Title of the story (100 characters at most)'},
-                      'ref': {'type': 'string', 'description': 'Key of the issue in a tracker, such as ABC-123'},
-                      'url': {'type': 'string', 'description': 'Link to the issue (http or https)'},
-                  },
-                  'additionalProperties': False,
-              },
-          }},
+          {'stories': STORIES_PROPERTY},
           ['stories']),
     _tool('update_story', 'Update a story',
           'Renames a story (in the backlog or estimated) and/or changes the estimate of an estimated story.',
@@ -135,12 +152,15 @@ def _integer(arguments: dict, name: str) -> int:
 
 
 class McpServer:
-    def __init__(self, gm: GameManager, notify: Callable[[str, dict, dict], None], room_link: Callable[[str], str]):
+    def __init__(self, gm: GameManager, notify: Callable[[str, dict, dict], None], room_link: Callable[[str], str],
+                 create_game: Callable[[str, str], str]):
         """notify(room, info, activity) tells the players of a room that an agent changed its stories.
-        activity: {'action': str, 'count'?: int, 'story'?: str}"""
+        activity: {'action': str, 'count'?: int, 'story'?: str}.
+        create_game(name, deck) creates a game, within the limit of the games one address can create."""
         self.gm = gm
         self.notify = notify
         self.room_link = room_link
+        self.create_game = create_game
 
     def handle(self, message: Any, default_room: Optional[str] = None) -> Optional[dict]:
         """Answers a JSON-RPC message, or returns None for notifications and responses (nothing to answer)"""
@@ -182,9 +202,12 @@ class McpServer:
 
     def call_tool(self, name: str, arguments: dict, default_room: Optional[str] = None) -> dict:
         try:
-            room, key = parse_agent_link(arguments.get('room') or default_room)
-            self.gm.authorize_agent(room, key)
-            output = getattr(self, f'_tool_{name}')(room, arguments)
+            if name == 'create_room':
+                output = self._tool_create_room(arguments)
+            else:
+                room, key = parse_agent_link(arguments.get('room') or default_room)
+                self.gm.authorize_agent(room, key)
+                output = getattr(self, f'_tool_{name}')(room, arguments)
         except (PlanningPokerException, ToolInputError) as e:
             return {'content': [{'type': 'text', 'text': str(e)}], 'isError': True}
         if isinstance(output, str):
@@ -196,6 +219,30 @@ class McpServer:
         }
 
     # Tools: each one gets the id of the room and the arguments
+
+    def _tool_create_room(self, arguments: dict):
+        name = arguments.get('name')
+        if not isinstance(name, str) or not name.strip():
+            raise ToolInputError('`name` must be the name of the room, such as "Sprint 43"')
+        deck = arguments.get('deck') or 'FIBONACCI'
+        if not isinstance(deck, str) or deck not in Deck.__members__:
+            raise ToolInputError(f'`deck` must be one of {", ".join(Deck.__members__)}')
+        stories = arguments.get('stories') or []
+        if not isinstance(stories, list):
+            raise ToolInputError('`stories` must be a list of stories: [{"name": ..., "ref": ..., "url": ...}]')
+        # Check the stories before creating anything: an invalid one would leave an empty room behind
+        Game('check').add_to_backlog(stories)
+        room = self.create_game(' '.join(name.split()), deck)
+        _, key = self.gm.enable_agent_access(room)
+        result = self.gm.add_to_backlog(room, stories)[1] if stories else {'added': [], 'skipped': []}
+        return {
+            'room': room,
+            'name': ' '.join(name.split()),
+            'deck': deck,
+            'link': self.room_link(room),
+            'agent_link': f'{self.room_link(room)}?agent={key}',
+            **result,
+        }
 
     def _tool_get_room(self, room: str, _arguments: dict):
         return room_view(self.gm.get_for_stories(room), room, self.room_link)

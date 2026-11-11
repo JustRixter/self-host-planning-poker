@@ -36,3 +36,12 @@ class InvalidStoryError(PlanningPokerException):
 
 class AgentAccessDeniedError(PlanningPokerException):
     code = 4010
+
+
+class TooManyGamesCreatedError(PlanningPokerException):
+    code = 4011
+
+    def __init__(self, retry_after: int):
+        super().__init__(f'Too many games created from this address: try again in {retry_after} seconds, or reuse an '
+                         f'existing game (its links keep working)')
+        self.retry_after = retry_after

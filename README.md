@@ -34,6 +34,7 @@ It features:
     "Copy all" copies the list as a table (tab-separated text and HTML) to paste in a spreadsheet or a document.
     The backlog and the estimated stories are stored in the database, so they survive restarts; changing the deck
     clears the estimated stories (estimates of different decks cannot be compared) but keeps the backlog.
+  * Forgotten games are deleted: the ones nobody opened for two weeks (see `ROOM_RETENTION_DAYS`).
   * Translations _(inherited from the original project; new strings of this fork are English only and fall back to English)_
  
 It does not integrate with issue trackers itself: an [AI agent](#ai-agents-mcp) can carry the stories
@@ -79,8 +80,9 @@ volumes:
 |-----------------------|--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|--------------------|
 | `APP_ROOT` (optional) | Allows you to deploy to another path than `/`.<br>See [Configuration examples for deploying on sub‐paths](https://github.com/axeleroy/self-host-planning-poker/wiki/Configuration-examples-for-deploying-on-sub%E2%80%90paths) for more details. | `APP_ROOT=/poker/` |
 | `SECRET_KEY` (optional) | Secret used to sign the session cookies. A random one is generated at startup if it is not set, which is fine for a single instance. | `SECRET_KEY=change-me` |
-| `CREATE_RATE_LIMIT` (optional) | How many games one address can create: `<number>/<second\|minute\|hour\|day>`, or `0` for no limit. Defaults to `20/hour`. Behind a reverse proxy, set `TRUSTED_PROXIES` too, otherwise every player shares the proxy's address and limit. | `CREATE_RATE_LIMIT=50/day` |
+| `CREATE_RATE_LIMIT` (optional) | How many games one address can create (in the app or with the `create_room` tool of the MCP server): `<number>/<second\|minute\|hour\|day>`, or `0` for no limit. Defaults to `20/hour`. Behind a reverse proxy, set `TRUSTED_PROXIES` too, otherwise every player shares the proxy's address and limit. | `CREATE_RATE_LIMIT=50/day` |
 | `TRUSTED_PROXIES` (optional) | Number of reverse proxies in front of the app, whose `X-Forwarded-For`, `X-Forwarded-Proto` and `X-Forwarded-Host` headers are trusted. Defaults to `0`: set it only when the app is not reachable without the proxies, or anyone can fake their address. | `TRUSTED_PROXIES=1` |
+| `ROOM_RETENTION_DAYS` (optional) | Games nobody opened (created, joined or used by an AI agent) for this many days are deleted, with their stories. Defaults to `14`; `0` keeps them forever. A game being played is never deleted. | `ROOM_RETENTION_DAYS=30` |
 | `MCP_ENABLED` (optional) | Set to `false` to turn off the [MCP server](#ai-agents-mcp) (`/mcp`) for the whole server: the players cannot let AI agents in their rooms anymore. On by default. | `MCP_ENABLED=false` |
 
 ### AI agents (MCP)
@@ -90,6 +92,7 @@ sessions), so that an AI agent such as Claude can read and prepare the stories o
 
 | Tool | What it does |
 |------|--------------|
+| `create_room` | Creates a room, with agents let in and optionally its backlog. Returns the link for the players and the agent link |
 | `get_room` | Name, deck and cards, players (and whether they voted), current story, size of the backlog, total |
 | `list_stories` | Estimated stories with their estimate, every player's vote, the agreement and the lowest and highest votes |
 | `list_backlog` | Stories waiting to be estimated, in order |
@@ -107,6 +110,8 @@ _Connect an AI agent_ (under the stories), which gives the **agent link** of the
   changes the stories ("An AI agent added 5 stories to the backlog").
 * _Turn off_ revokes the agent link. Turning the access on again gives a new link: agents that had the previous one
   cannot use it anymore.
+* A room created by an agent (`create_room`) lets agents in from the start: the agent gets its agent link, and gives
+  the players the usual link. The players see that agents are let in, and can turn it off.
 * The agent link only gives access to its room. The same connection to the MCP server works for any number of rooms:
   each one is opened by its own agent link.
 
@@ -239,8 +244,8 @@ curl -s https://poker.example.com/mcp -H 'Content-Type: application/json' \
 
 #### Using it
 
-Ask your agent, for instance: _"Add the unestimated issues of the current cycle to the room
-https://poker.example.com/game/…?agent=…"_, and after the session: _"Write the estimates of the room back to the
+Ask your agent, for instance: _"Create a room for sprint 43 with the unestimated issues of the current cycle"_ (or
+_"Add them to the room https://poker.example.com/game/…?agent=…"_), and after the session: _"Write the estimates of the room back to the
 issues"_. The app never talks to your tracker: it keeps the `ref` and the `url` of each story, and the agent uses the
 tracker's own tools.
 

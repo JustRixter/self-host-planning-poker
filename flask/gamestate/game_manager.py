@@ -11,20 +11,29 @@ from gamestate.deck import Deck
 from gamestate.exceptions import GameDoesNotExistError, DeckDoesNotExistError, GameNotOngoingError, \
     AgentAccessDeniedError
 from gamestate.game import Game
-from gamestate.models import StoredGame, StoredStory, RoomAgentAccess, database_proxy
+from gamestate.models import StoredGame, StoredStory, RoomAgentAccess, RoomActivity, database_proxy
 from gamestate.player import Player
 
 
 class GameManager:
     """Class that manages games"""
+    # How often the last opening of a game is written, and how often forgotten games are looked for
+    TOUCH_INTERVAL = timedelta(hours=1)
+    CLEANUP_INTERVAL = timedelta(hours=1)
+
     def __init__(self):
         self.games = {}
+        # Games nobody opened for this long are deleted. None keeps them forever.
+        self.retention: Optional[timedelta] = None
+        self.__last_cleanup: Optional[datetime] = None
 
     def create(self, name: str, deck_name='FIBONACCI') -> str:
         game_uuid = str(uuid.uuid4())
         deck = self.__get_deck(deck_name)
         StoredGame.create(uuid=game_uuid, name=name, deck=deck_name)
         self.games[game_uuid] = Game(name, deck)
+        self.touch(game_uuid)
+        self.cleanup_if_due()
         return game_uuid
 
     def get(self, game_uuid: str) -> Game:
@@ -86,6 +95,47 @@ class GameManager:
         now = self.__now()
         if access.last_used_at is None or access.last_used_at < now - timedelta(minutes=1):
             RoomAgentAccess.update(last_used_at=now).where(RoomAgentAccess.game == str(game_uuid)).execute()
+        self.touch(game_uuid)
+
+    # Forgotten games: the ones nobody opened for `retention` are deleted
+
+    def touch(self, game_uuid: str) -> None:
+        """Records that the game was opened (at most once in TOUCH_INTERVAL, to spare the database)"""
+        now = self.__now()
+        activity = RoomActivity.get_or_none(RoomActivity.game == str(game_uuid))
+        if activity is None:
+            RoomActivity.create(game=str(game_uuid), last_opened_at=now)
+        elif activity.last_opened_at < now - self.TOUCH_INTERVAL:
+            RoomActivity.update(last_opened_at=now).where(RoomActivity.game == str(game_uuid)).execute()
+
+    def cleanup_if_due(self) -> int:
+        """Deletes the forgotten games, at most once in CLEANUP_INTERVAL. Returns how many were deleted."""
+        now = self.__now()
+        if self.retention is None or (self.__last_cleanup and self.__last_cleanup > now - self.CLEANUP_INTERVAL):
+            return 0
+        self.__last_cleanup = now
+        return self.cleanup()
+
+    def cleanup(self) -> int:
+        """Deletes the games nobody opened for `retention`, except the ones being played. Returns how many."""
+        if self.retention is None:
+            return 0
+        now = self.__now()
+        known = {activity.game for activity in RoomActivity.select(RoomActivity.game)}
+        stored = {str(game.uuid) for game in StoredGame.select(StoredGame.uuid)}
+        # Games from before the activity was recorded: count from now, so that they get the whole delay
+        unknown = [{'game': game, 'last_opened_at': now} for game in stored - known]
+        stale = [activity.game for activity in RoomActivity.select(RoomActivity.game)
+                 .where(RoomActivity.last_opened_at < now - self.retention) if activity.game not in self.games]
+        with database_proxy.atomic():
+            for batch in chunked(unknown, 100):
+                RoomActivity.insert_many(batch).execute()
+            for batch in chunked(stale, 100):
+                StoredStory.delete().where(StoredStory.game.in_(batch)).execute()
+                RoomAgentAccess.delete().where(RoomAgentAccess.game.in_(batch)).execute()
+                RoomActivity.delete().where(RoomActivity.game.in_(batch)).execute()
+                StoredGame.delete().where(StoredGame.uuid.in_([uuid.UUID(game) for game in batch])).execute()
+        return len(stale)
 
     @staticmethod
     def __now() -> datetime:
@@ -140,6 +190,8 @@ class GameManager:
         game = self.get(game_uuid)
         player = Player(player_name, is_spectator)
         game.player_joins(player_id, player)
+        self.touch(game_uuid)
+        self.cleanup_if_due()
         return game.info(), game.state()
 
     def leave_game(self, game_uuid: str, player_uuid: str) -> dict:
