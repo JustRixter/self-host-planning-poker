@@ -2,7 +2,7 @@ import { inject, Injectable } from '@angular/core';
 import { Manager, Socket } from 'socket.io-client';
 import { environment } from '../../environments/environment';
 import { BehaviorSubject, distinctUntilChanged, filter, map, Observable, Subject } from 'rxjs';
-import { ErrorMessage, GameInfo, GameState } from '../model/events';
+import { ErrorMessage, GameInfo, GameState, NewStory } from '../model/events';
 import { Deck, decksDict } from '../model/deck';
 import { ActivatedRouteSnapshot, CanActivateFn, Router, UrlTree } from '@angular/router';
 import { TranslocoService } from '@jsverse/transloco';
@@ -234,6 +234,29 @@ export class CurrentGameService {
 
   public deleteStory(id: number): void {
     this.socket.emit('delete_story', { id: id }, (response?: ErrorMessage) => this.handleError(response));
+  }
+
+  public addToBacklog(stories: NewStory[]): void {
+    this.socket.emit('add_to_backlog', { stories: stories }, (response?: ErrorMessage) => this.handleError(response));
+  }
+
+  /** position starts at 1: the next story to estimate */
+  public moveStory(id: number, position: number): void {
+    this.socket.emit('move_story', { id: id, position: position }, (response?: ErrorMessage) => this.handleError(response));
+  }
+
+  /** Sends the next story of the backlog to the end of it */
+  public skipStory(): void {
+    this.socket.emit('skip_story', (response?: ErrorMessage) => this.handleError(response));
+  }
+
+  /** Puts an estimated story back on top of the backlog, to vote on it again */
+  public requeueStory(id: number): void {
+    this.socket.emit('requeue_story', { id: id }, (response?: ErrorMessage) => this.handleError(response));
+  }
+
+  public clearBacklog(): void {
+    this.socket.emit('clear_backlog', (response?: ErrorMessage) => this.handleError(response));
   }
 
   public pickCard(cardValue: number | null): void {

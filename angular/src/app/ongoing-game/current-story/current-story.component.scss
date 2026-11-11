@@ -1,0 +1,42 @@
+.current-story {
+  min-width: 0;
+}
+
+.label {
+  letter-spacing: .04em;
+}
+
+.name {
+  min-width: 0;
+  font-size: 1.1rem;
+}
+
+.ref {
+  font-weight: 600;
+  color: var(--bs-secondary-color);
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+a.ref {
+  color: var(--app-accent-text);
+
+  &:hover {
+    text-decoration: underline;
+  }
+}
+
+.estimate {
+  padding: .1rem .55rem;
+  border-radius: var(--bs-border-radius);
+  background: var(--app-accent-soft);
+  color: var(--app-accent-text);
+}
+
+.skip {
+  text-decoration: none;
+
+  &:hover {
+    color: var(--bs-body-color) !important;
+  }
+}

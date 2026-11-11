@@ -24,15 +24,20 @@ It features:
   * Vote summary
   * Light and dark themes (follows your system by default, switchable from the navigation bar)
   * Story names: give the story being estimated a name, shared with all the players
+  * Backlog: the stories to estimate, in order ("Next up"). Add them one per line (`ABC-123 Login timeout`, a link to
+    the issue works too), reorder, rename or skip them, or let an [AI agent](#ai-agents-mcp-and-http-api) fill the
+    backlog from your issue tracker. The next story is shown above the table, and revealing the cards estimates it.
   * Estimated stories: a list that is always visible next to the game (below it on small screens). A story is added to it
-    each time the cards are revealed, with the most-picked card as its estimate (the highest one on a tie). Use it to
-    give the story a name, fix its estimate or delete it (for instance when the team votes again after a discussion).
-    It also shows the total points (except for T-shirt sizes), and "Copy all" copies the list as a table (tab-separated
-    text and HTML) to paste in a spreadsheet or a document. The list is kept in memory: it is reset when the deck is
-    changed or the server restarts.
+    each time the cards are revealed, with the most-picked card as its estimate (the highest one on a tie) and every
+    player's vote (hover the estimate to see them). Use it to give the story a name, fix its estimate, vote on it again
+    (it goes back on top of the backlog) or delete it. It also shows the total points (except for T-shirt sizes), and
+    "Copy all" copies the list as a table (tab-separated text and HTML) to paste in a spreadsheet or a document.
+    The backlog and the estimated stories are stored in the database, so they survive restarts; changing the deck
+    clears the estimated stories (estimates of different decks cannot be compared) but keeps the backlog.
   * Translations _(inherited from the original project; new strings of this fork are English only and fall back to English)_
  
-It does not have fancy features like issues management, Jira integration or timers.
+It does not integrate with issue trackers itself: an [AI agent](#ai-agents-mcp-and-http-api) can carry the stories
+and their estimates between your tracker and a room.
 
 ## Screenshots
 <a href="assets/screenshot.png"><img alt="Application screenshot with cards face down" src="assets/screenshot.png" width="412px"></a>
@@ -74,6 +79,42 @@ volumes:
 |-----------------------|--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|--------------------|
 | `APP_ROOT` (optional) | Allows you to deploy to another path than `/`.<br>See [Configuration examples for deploying on sub‐paths](https://github.com/axeleroy/self-host-planning-poker/wiki/Configuration-examples-for-deploying-on-sub%E2%80%90paths) for more details. | `APP_ROOT=/poker/` |
 | `SECRET_KEY` (optional) | Secret used to sign the session cookies. A random one is generated at startup if it is not set, which is fine for a single instance. | `SECRET_KEY=change-me` |
+| `API_ENABLED` (optional) | Set to `false` to turn off the [MCP server and the HTTP API](#ai-agents-mcp-and-http-api) (`/mcp` and `/api`). They are on by default. | `API_ENABLED=false` |
+| `API_TOKEN` (optional) | When set, the MCP server and the HTTP API require the header `Authorization: Bearer <token>`. | `API_TOKEN=change-me` |
+
+### AI agents (MCP) and HTTP API
+
+The server is also a [Model Context Protocol](https://modelcontextprotocol.io) server at `/mcp` (Streamable HTTP, without
+sessions), so that an AI agent such as Claude can read and prepare the stories of a room. Its tools:
+
+| Tool | What it does |
+|------|--------------|
+| `get_room` | Name, deck and cards, players (and whether they voted), current story, size of the backlog, total |
+| `list_stories` | Estimated stories with their estimate, every player's vote, the agreement and the lowest and highest votes |
+| `list_backlog` | Stories waiting to be estimated, in order |
+| `add_to_backlog` | Adds stories (`name`, optional `ref` such as `ABC-123` and `url`). Stories whose `ref` is already in the room are skipped |
+| `update_story`, `move_story`, `requeue_story`, `delete_story`, `clear_backlog` | Edit the stories, as the players can |
+| `export_stories` | The estimated stories as a Markdown table or CSV |
+
+Every tool takes the room: its id or the link to join it. To work on a single room, put it in the URL of the server
+instead: `https://poker.example.com/mcp?room=<id>`. The players see the changes at once, and the backlog of a room
+can be prepared before anybody joins it.
+
+For instance, with [Claude Code](https://code.claude.com):
+
+```bash
+claude mcp add --transport http planning-poker https://poker.example.com/mcp
+```
+
+Then ask: _"Add the unestimated issues of the current cycle to the room https://poker.example.com/game/…"_, and after
+the session: _"Write the estimates of the room back to the issues"_. The app never talks to your tracker: it keeps the
+`ref` and the `url` of each story, and the agent uses the tracker's own tools.
+
+The same data is available without MCP: `GET /api/rooms/<id>` returns the room, its backlog and its estimated stories
+as JSON, `?format=markdown` or `?format=csv` as a table.
+
+Like the game itself, knowing the id of a room gives access to it. Set `API_TOKEN` to require a token, or
+`API_ENABLED=false` to turn both off. Requests sent by web pages of other sites are refused.
 
 ### Running behind a reverse-proxy
 

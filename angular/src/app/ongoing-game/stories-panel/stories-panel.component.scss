@@ -4,8 +4,58 @@
 
 .story-list {
   overflow-y: auto;
-  // Keep the header and the footer of the panel on screen when the list is long
+}
+
+// Keep the headers and the footer of the panel on screen when the lists are long
+.backlog-list {
+  max-height: 30svh;
+}
+
+.estimated-list {
   max-height: calc(100svh - 15rem);
+
+  @media (min-width: 992px) {
+    max-height: 40svh;
+  }
+}
+
+// The next story to estimate
+.story.next {
+  background-color: var(--app-accent-soft);
+  border-radius: var(--bs-border-radius-sm);
+}
+
+// Key of the issue in a tracker (ABC-123), a link to it when there is one
+.ref {
+  font-weight: 600;
+  white-space: nowrap;
+  color: var(--bs-secondary-color);
+  text-decoration: none;
+  max-width: 7rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+a.ref {
+  color: var(--app-accent-text);
+
+  &:hover {
+    text-decoration: underline;
+  }
+}
+
+.add-input {
+  resize: vertical;
+  min-height: calc(1.5em + .5rem + 2px);
+}
+
+.clear {
+  font-size: inherit;
+  text-decoration: none;
+
+  &:hover {
+    color: var(--bs-danger) !important;
+  }
 }
 
 .story {
@@ -34,26 +84,64 @@
   background-position: right .4rem center;
 }
 
-.remove {
+.action {
   color: var(--bs-secondary-color);
   border-color: transparent;
-  opacity: 0;
-  transition: opacity 120ms ease, color 120ms ease;
+  padding-left: .3rem;
+  padding-right: .3rem;
+  transition: color 120ms ease;
 
   &:hover {
+    color: var(--bs-body-color);
+  }
+
+  &.remove:hover {
     color: var(--bs-danger);
+  }
+
+  &:disabled {
+    border-color: transparent;
   }
 }
 
-.story:hover .remove,
-.story:focus-within .remove {
-  opacity: 1;
+// The buttons of a story only show up when it is hovered or focused, over the end of the row: the list is read far
+// more often than edited, and the names need the room
+.name-cell {
+  position: relative;
+  display: flex;
+  align-items: center;
+  flex: 1 1 auto;
+  min-width: 0;
 }
 
-// There is no hover on touch screens: always show the delete button there
+.actions {
+  position: absolute;
+  right: 0;
+  top: 50%;
+  transform: translateY(-50%);
+  background: var(--app-surface);
+  box-shadow: -.75rem 0 .5rem -.25rem var(--app-surface);
+  border-radius: var(--bs-border-radius-sm);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 120ms ease;
+}
+
+.story:hover .actions,
+.story:focus-within .actions {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+// There is no hover on touch screens: always show the buttons there, next to the name
 @media (hover: none) {
-  .remove {
+  .actions {
+    position: static;
+    transform: none;
+    box-shadow: none;
+    background: transparent;
     opacity: 1;
+    pointer-events: auto;
   }
 }
 

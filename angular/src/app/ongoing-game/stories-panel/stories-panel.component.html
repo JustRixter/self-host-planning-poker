@@ -1,6 +1,79 @@
 <section class="d-flex flex-column p-3 p-lg-4 stories" *transloco="let t; read 'stories'" aria-labelledby="stories-title">
   @if (view$ | async; as view) {
-    <div class="d-flex justify-content-between align-items-baseline mb-3">
+    <!-- Backlog: the stories to estimate, the first one is estimated at the next reveal -->
+    <div class="d-flex justify-content-between align-items-baseline mb-2">
+      <h2 id="backlog-title" class="fs-6 fw-semibold mb-0">{{ t('backlogTitle') }}</h2>
+      <span class="d-flex align-items-baseline gap-2 text-muted small tabular">
+        @if (view.backlog.length > 0) {
+          {{ view.backlog.length === 1 ? t('countOne') : t('count', { count: view.backlog.length }) }}
+          <button type="button" class="btn btn-link btn-sm p-0 text-muted clear" (click)="clearBacklog()">{{ t('clear') }}</button>
+        }
+      </span>
+    </div>
+
+    @if (view.backlog.length > 0) {
+      <ol class="list-unstyled mb-2 story-list backlog-list" aria-labelledby="backlog-title">
+        @for (story of view.backlog; track story.id; let i = $index, first = $first, last = $last) {
+          <li class="story d-flex align-items-center gap-1" [class.next]="first">
+            <span class="text-muted text-end flex-shrink-0 index tabular small">
+              @if (first) {
+                <svg class="bi text-success" width="1em" height="1em" fill="currentColor" role="img" [attr.aria-label]="t('next')">
+                  <use xlink:href="assets/bootstrap-icons.svg#play-fill"/>
+                </svg>
+              } @else {
+                {{ i + 1 }}
+              }
+            </span>
+            @if (story.ref) {
+              @if (story.url) {
+                <a class="ref small flex-shrink-0" [href]="story.url" target="_blank" rel="noopener noreferrer">{{ story.ref }}</a>
+              } @else {
+                <span class="ref small flex-shrink-0">{{ story.ref }}</span>
+              }
+            }
+            <span class="name-cell">
+              <input type="text" class="form-control form-control-sm story-input" maxlength="100"
+                     [attr.aria-label]="t('backlogNameLabel', { number: i + 1 })"
+                     [placeholder]="t('unnamed', { number: i + 1 })"
+                     [value]="story.name"
+                     (change)="rename(story.id, $any($event.target).value)"
+                     (keyup.enter)="$any($event.target).blur()">
+              <span class="d-flex flex-shrink-0 actions">
+                <button type="button" class="btn btn-sm action" [disabled]="first"
+                        [attr.aria-label]="t('moveUp', { number: i + 1 })" (click)="move(story.id, i)">
+                  <svg class="bi" width="1em" height="1em" fill="currentColor" aria-hidden="true"><use xlink:href="assets/bootstrap-icons.svg#arrow-up"/></svg>
+                </button>
+                <button type="button" class="btn btn-sm action" [disabled]="last"
+                        [attr.aria-label]="t('moveDown', { number: i + 1 })" (click)="move(story.id, i + 2)">
+                  <svg class="bi" width="1em" height="1em" fill="currentColor" aria-hidden="true"><use xlink:href="assets/bootstrap-icons.svg#arrow-down"/></svg>
+                </button>
+                <button type="button" class="btn btn-sm action remove"
+                        [attr.aria-label]="t('backlogDelete', { number: i + 1 })" (click)="remove(story.id)">
+                  <svg class="bi" width="1em" height="1em" fill="currentColor" aria-hidden="true"><use xlink:href="assets/bootstrap-icons.svg#trash"/></svg>
+                </button>
+              </span>
+            </span>
+          </li>
+        }
+      </ol>
+    }
+
+    <form class="d-flex align-items-start gap-2 mb-4 add-form" (submit)="$event.preventDefault(); addStories()">
+      <textarea class="form-control form-control-sm add-input" rows="1"
+                [attr.aria-label]="t('addLabel')"
+                [placeholder]="t('addPlaceholder')"
+                [title]="t('addLabel')"
+                [value]="newStories"
+                (input)="newStories = $any($event.target).value"
+                (keydown)="onAddKeydown($event)"></textarea>
+      <button type="submit" class="btn btn-sm btn-outline-secondary flex-shrink-0" [disabled]="!newStories.trim()"
+              [attr.aria-label]="t('add')">
+        <svg class="bi" width="1em" height="1em" fill="currentColor" aria-hidden="true"><use xlink:href="assets/bootstrap-icons.svg#plus-lg"/></svg>
+      </button>
+    </form>
+
+    <!-- Estimated stories: one is added each time the cards are revealed -->
+    <div class="d-flex justify-content-between align-items-baseline mb-3 pt-3 border-top">
       <h2 id="stories-title" class="fs-6 fw-semibold mb-0">{{ t('title') }}</h2>
       <span class="text-muted small tabular">
         @if (view.stories.length > 0) {
@@ -17,30 +90,45 @@
         <p class="small mb-0">{{ t('empty') }}</p>
       </div>
     } @else {
-      <ol class="list-unstyled mb-3 story-list">
+      <ol class="list-unstyled mb-3 story-list estimated-list">
         @for (story of view.stories; track story.id; let i = $index) {
           <li class="story d-flex align-items-center gap-1">
             <span class="text-muted text-end flex-shrink-0 index tabular small">{{ i + 1 }}</span>
-            <input type="text" class="form-control form-control-sm story-input" maxlength="100"
-                   [attr.aria-label]="t('nameLabel', { number: i + 1 })"
-                   [placeholder]="t('unnamed', { number: i + 1 })"
-                   [value]="story.name"
-                   (change)="rename(story.id, $any($event.target).value)"
-                   (keyup.enter)="$any($event.target).blur()">
+            @if (story.ref) {
+              @if (story.url) {
+                <a class="ref small flex-shrink-0" [href]="story.url" target="_blank" rel="noopener noreferrer">{{ story.ref }}</a>
+              } @else {
+                <span class="ref small flex-shrink-0">{{ story.ref }}</span>
+              }
+            }
+            <span class="name-cell">
+              <input type="text" class="form-control form-control-sm story-input" maxlength="100"
+                     [attr.aria-label]="t('nameLabel', { number: i + 1 })"
+                     [placeholder]="t('unnamed', { number: i + 1 })"
+                     [value]="story.name"
+                     (change)="rename(story.id, $any($event.target).value)"
+                     (keyup.enter)="$any($event.target).blur()">
+              <span class="d-flex flex-shrink-0 actions">
+                <button type="button" class="btn btn-sm action"
+                        [attr.aria-label]="t('requeue', { number: i + 1 })" [title]="t('requeue', { number: i + 1 })"
+                        (click)="requeue(story.id)">
+                  <svg class="bi" width="1em" height="1em" fill="currentColor" aria-hidden="true"><use xlink:href="assets/bootstrap-icons.svg#arrow-counterclockwise"/></svg>
+                </button>
+                <button type="button" class="btn btn-sm action remove"
+                        [attr.aria-label]="t('delete', { number: i + 1 })"
+                        (click)="remove(story.id)">
+                  <svg class="bi" width="1em" height="1em" fill="currentColor" aria-hidden="true"><use xlink:href="assets/bootstrap-icons.svg#trash"/></svg>
+                </button>
+              </span>
+            </span>
             <select class="form-select form-select-sm story-estimate w-auto fw-semibold flex-shrink-0 tabular"
                     [attr.aria-label]="t('estimateLabel', { number: i + 1 })"
+                    [title]="story.votes"
                     (change)="setEstimate(story.id, $any($event.target).value)">
               @for (card of view.cards; track card.value) {
                 <option [value]="card.value" [selected]="card.value === story.estimate">{{ card.display }}</option>
               }
             </select>
-            <button type="button" class="btn btn-sm remove flex-shrink-0"
-                    [attr.aria-label]="t('delete', { number: i + 1 })"
-                    (click)="remove(story.id)">
-              <svg class="bi" width="1em" height="1em" fill="currentColor" aria-hidden="true">
-                <use xlink:href="assets/bootstrap-icons.svg#trash"/>
-              </svg>
-            </button>
           </li>
         }
       </ol>

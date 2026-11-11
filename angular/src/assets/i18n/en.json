@@ -82,7 +82,8 @@
     "4004": "This game does not exist.",
     "4005": "The card you have picked is not an acceptable value of the current deck.",
     "4006": "You are a spectator, you should not be able to pick a card.",
-    "4008": "This story does not exist."
+    "4008": "This story does not exist.",
+    "4009": "This story is not valid: \"{{message}}\""
   },
   "theme": {
     "toggle": "Theme: {{mode}} (click to change)",
@@ -91,7 +92,7 @@
     "dark": "dark"
   },
   "stories": {
-    "title": "Stories",
+    "title": "Estimated",
     "summary": "{{count}} stories · {{points}} pts",
     "count": "{{count}} stories",
     "empty": "Nothing here yet. Each time you reveal the cards, the estimate is added to this list.",
@@ -106,7 +107,20 @@
     "nameLabel": "Name of story {{number}}",
     "estimateLabel": "Estimate of story {{number}}",
     "delete": "Delete story {{number}}",
-    "countOne": "1 story"
+    "countOne": "1 story",
+    "backlogTitle": "Next up",
+    "next": "Next story to estimate",
+    "clear": "Clear",
+    "clearConfirm": "Remove every story of the backlog? The estimated stories are kept.",
+    "backlogNameLabel": "Name of story {{number}} of the backlog",
+    "moveUp": "Move story {{number}} of the backlog up",
+    "moveDown": "Move story {{number}} of the backlog down",
+    "backlogDelete": "Delete story {{number}} of the backlog",
+    "add": "Add to the backlog",
+    "addLabel": "Stories to add to the backlog, one per line, such as \"ABC-123 Login timeout\"",
+    "addPlaceholder": "Add stories, one per line",
+    "requeue": "Vote again on story {{number}}",
+    "refHeader": "Ref"
   },
   "departures": {
     "left": "{{names}} left",
@@ -115,5 +129,11 @@
   "connection": {
     "reconnecting": "Connection lost. Trying to reconnect...",
     "failed": "Could not reconnect. Click to reload the page."
+  },
+  "currentStory": {
+    "estimating": "Estimating",
+    "estimated": "Estimated",
+    "skip": "Skip",
+    "skipHint": "Estimate it later: move it to the end of the backlog"
   }
 }
