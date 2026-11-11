@@ -37,10 +37,7 @@
               </button>
             </div>
           </details>
-          <div class="d-flex gap-3">
-            <button type="button" class="btn btn-link btn-sm p-0 text-muted" [disabled]="busy" (click)="renew()">{{ t('renew') }}</button>
-            <button type="button" class="btn btn-link btn-sm p-0 text-muted turn-off" (click)="disable()">{{ t('disable') }}</button>
-          </div>
+          <button type="button" class="btn btn-link btn-sm p-0 text-muted turn-off" (click)="disable()">{{ t('disable') }}</button>
         }
       </div>
     </section>

@@ -58,14 +58,6 @@ export class AgentAccessComponent implements OnDestroy {
     this.busy = false;
   }
 
-  async renew(): Promise<void> {
-    if (confirm(this.transloco.translate('agentAccess.renewConfirm'))) {
-      this.busy = true;
-      this.link = await this.currentGameService.renewAgentLink();
-      this.busy = false;
-    }
-  }
-
   disable(): void {
     if (confirm(this.transloco.translate('agentAccess.disableConfirm'))) {
       this.currentGameService.disableAgentAccess();

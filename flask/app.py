@@ -319,18 +319,6 @@ def get_agent_link():
 
 
 @socketio.event
-def renew_agent_link():
-    """Replaces the agent link of the room: the agents that have the previous one cannot use it anymore"""
-    game_id = session['game_id']
-    if not mcp_enabled:
-        return {'error': True, 'message': 'The MCP server is turned off on this server', 'code': 4010}
-
-    info, key = gm.renew_agent_key(game_id)
-    emit('info', info, to=game_id, json=True)
-    return {'link': agent_link(game_id, key)}
-
-
-@socketio.event
 def disable_agent_access():
     game_id = session['game_id']
 

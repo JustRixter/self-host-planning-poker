@@ -31,6 +31,7 @@ export class CurrentGameService {
   private departuresSubject = new Subject<string>();
   private connectionSubject = new BehaviorSubject<ConnectionState>('connected');
   private mcpAvailableSubject = new BehaviorSubject<boolean>(false);
+  private agentActivitySubject = new Subject<AgentActivity>();
 
   /** The game we are in: after a lost connection, we have to join it again */
   private gameId?: string;
@@ -66,11 +67,7 @@ export class CurrentGameService {
       }
       this.infoSubject.next(info);
     });
-    this.socket.on('agent_activity', (activity: AgentActivity) => {
-      const key = activity.action === 'added' && activity.count === 1 ? 'addedOne' : activity.action;
-      this.transloco.selectTranslate(`agentActivity.${key}`, activity).subscribe((text) =>
-        this.toastService.show(text, { className: 'text-bg-secondary' }));
-    });
+    this.socket.on('agent_activity', (activity: AgentActivity) => this.agentActivitySubject.next(activity));
     this.socket.on('new_game', () => {
       this.lastPick = null;
       this.newGameSubject.next();
@@ -137,6 +134,11 @@ export class CurrentGameService {
 
   public get newGame$(): Observable<void>{
     return this.newGameSubject.asObservable();
+  }
+
+  /** What AI agents change in the stories of the game */
+  public get agentActivity$(): Observable<AgentActivity> {
+    return this.agentActivitySubject.asObservable();
   }
 
   /** Whether the server lets games turn on the access of AI agents */
@@ -280,11 +282,6 @@ export class CurrentGameService {
   /** The agent link of the game, or null if agents are not let in */
   public getAgentLink(): Promise<string | null> {
     return this.agentLinkRequest('get_agent_link');
-  }
-
-  /** Replaces the agent link: the agents that have the previous one cannot use it anymore */
-  public renewAgentLink(): Promise<string | null> {
-    return this.agentLinkRequest('renew_agent_link');
   }
 
   public disableAgentAccess(): void {

@@ -64,12 +64,8 @@ class GameManager:
         game.agent_access = True
         return game.info(), key
 
-    def renew_agent_key(self, game_uuid: str) -> tuple[dict, str]:
-        """Replaces the key of the agent link: the previous link stops working"""
-        self.disable_agent_access(game_uuid)
-        return self.enable_agent_access(game_uuid)
-
     def disable_agent_access(self, game_uuid: str) -> dict:
+        """Revokes the agent link: turning the access on again gives a new one"""
         game = self.get_for_stories(game_uuid)
         RoomAgentAccess.delete().where(RoomAgentAccess.game == str(game_uuid)).execute()
         game.agent_access = False

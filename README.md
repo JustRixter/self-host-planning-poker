@@ -105,7 +105,8 @@ _Connect an AI agent_ (under the stories), which gives the **agent link** of the
 
 * Every player of the room sees that agents are let in, can copy the agent link again, and is told when an agent
   changes the stories ("An AI agent added 5 stories to the backlog").
-* _New link_ replaces the agent link: agents that have the previous one cannot use it anymore. _Turn off_ revokes it.
+* _Turn off_ revokes the agent link. Turning the access on again gives a new link: agents that had the previous one
+  cannot use it anymore.
 * The agent link only gives access to its room. The same connection to the MCP server works for any number of rooms:
   each one is opened by its own agent link.
 

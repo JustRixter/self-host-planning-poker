@@ -151,10 +151,8 @@
     "setupTitle": "First time? Connect your agent to this server",
     "setupHelp": "Add this MCP server to your agent once (for instance: claude mcp add --transport http planning-poker <address>). The README explains it for other agents.",
     "serverLabel": "Address of the MCP server",
-    "renew": "New link",
-    "renewConfirm": "Replace the agent link? Agents that have the current one will not be able to use it anymore.",
     "disable": "Turn off",
-    "disableConfirm": "Turn off the access of AI agents? Their link stops working."
+    "disableConfirm": "Turn off the access of AI agents? Their link stops working: turning it on again gives a new one."
   },
   "agentActivity": {
     "added": "An AI agent added {{count}} stories to the backlog",

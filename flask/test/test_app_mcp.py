@@ -74,14 +74,14 @@ class McpTestCase(unittest.TestCase):
         result = self.rpc('tools/call', {'name': 'get_room', 'arguments': {}}).get_json()['result']
         self.assertTrue(result['isError'])
 
-    def test_turning_off_or_renewing_revokes_the_link(self):
+    def test_turning_off_revokes_the_link_and_turning_on_again_gives_a_new_one(self):
+        key = self.link.split('agent=')[1]
+        self.assertEqual(self.gm.enable_agent_access(self.game_id)[1], key, 'turning it on again keeps the link')
         self.gm.disable_agent_access(self.game_id)
         self.assertTrue(self.call('list_backlog')['isError'])
-        _, key = self.gm.enable_agent_access(self.game_id)
-        self.assertFalse(self.call('list_backlog', room=f'http://localhost/game/{self.game_id}?agent={key}')['isError'])
-        _, new_key = self.gm.renew_agent_key(self.game_id)
+        _, new_key = self.gm.enable_agent_access(self.game_id)
         self.assertNotEqual(key, new_key)
-        self.assertTrue(self.call('list_backlog', room=f'http://localhost/game/{self.game_id}?agent={key}')['isError'])
+        self.assertTrue(self.call('list_backlog')['isError'])
         self.assertFalse(self.call('list_backlog', room=f'http://x/game/{self.game_id}?agent={new_key}')['isError'])
 
     def test_tool_errors_are_reported_to_the_agent(self):
@@ -196,15 +196,18 @@ class McpTestCase(unittest.TestCase):
         self.assertEqual(bob.emit('enable_agent_access', callback=True), {'link': link})
         self.assertFalse(self.call('list_backlog', room=link)['isError'])
 
-        renewed = bob.emit('renew_agent_link', callback=True)['link']
-        self.assertNotEqual(renewed, link)
-        self.assertTrue(self.call('list_backlog', room=link)['isError'])
+        self.assertIsNone(bob.emit('renew_agent_link', callback=True), 'there is no way to replace a link that is on')
 
         bob.emit('disable_agent_access')
         infos = [event['args'][0] for event in alice.get_received() if event['name'] == 'info']
         self.assertFalse(infos[-1]['agentAccess'])
-        self.assertTrue(self.call('list_backlog', room=renewed)['isError'])
+        self.assertTrue(self.call('list_backlog', room=link)['isError'])
         self.assertEqual(alice.emit('get_agent_link', callback=True), {'link': None})
+        new_link = alice.emit('enable_agent_access', callback=True)['link']
+        self.assertNotEqual(new_link, link)
+        self.assertTrue(self.call('list_backlog', room=link)['isError'])
+        self.assertFalse(self.call('list_backlog', room=new_link)['isError'])
+        alice.emit('disable_agent_access')
 
         self.flask_app.mcp_enabled = False
         self.assertEqual(alice.emit('enable_agent_access', callback=True)['code'], 4010)
