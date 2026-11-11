@@ -3,6 +3,7 @@ import os
 import secrets
 import sys
 import uuid
+from datetime import timedelta
 from urllib.parse import urlparse
 
 from flask import Flask, request, session, render_template, jsonify
@@ -12,7 +13,7 @@ from werkzeug.middleware.proxy_fix import ProxyFix
 from peewee import SqliteDatabase, OperationalError
 
 from permission_check import check_db_file_permissions
-from gamestate.exceptions import PlanningPokerException
+from gamestate.exceptions import PlanningPokerException, TooManyGamesCreatedError
 from gamestate.game_manager import GameManager
 from gamestate.models import database_proxy, create_tables
 from mcp_server import McpServer
@@ -51,6 +52,10 @@ if database_proxy.is_closed():
 create_tables()
 
 gm = GameManager()
+# Games nobody opened (created, joined or used by an AI agent) for this many days are deleted. 0 keeps them forever.
+room_retention_days = int(os.getenv('ROOM_RETENTION_DAYS', '14'))
+if room_retention_days > 0:
+    gm.retention = timedelta(days=room_retention_days)
 
 app_root = os.getenv('APP_ROOT', '/')
 if not app_root.endswith('/'):
@@ -75,7 +80,16 @@ def notify_room(room_id: str, info: dict, activity: dict) -> None:
     socketio.emit('agent_activity', activity, to=room_id)
 
 
-mcp = McpServer(gm, notify_room, room_link)
+def create_game(name: str, deck: str) -> str:
+    """Creates a game, within the limit of the games one address can create (raises TooManyGamesCreatedError)"""
+    if create_limiter:
+        retry_after = create_limiter.hit(request.remote_addr or 'unknown')
+        if retry_after is not None:
+            raise TooManyGamesCreatedError(retry_after)
+    return gm.create(name, deck)
+
+
+mcp = McpServer(gm, notify_room, room_link, create_game)
 
 
 def mcp_request_refused():
@@ -95,13 +109,11 @@ def create():
     if not isinstance(body, dict) or not isinstance(body.get('name'), str) or not body['name'].strip() \
             or not isinstance(body.get('deck'), str):
         return jsonify({'error': 'Expected {"name": "<name of the game>", "deck": "<deck>"}'}), 400
-    if create_limiter:
-        retry_after = create_limiter.hit(request.remote_addr or 'unknown')
-        if retry_after is not None:
-            return jsonify({'error': 'Too many games created, try again later', 'retryAfter': retry_after}), 429, \
-                {'Retry-After': str(retry_after)}
     try:
-        return gm.create(body['name'], body['deck'])
+        return create_game(body['name'], body['deck'])
+    except TooManyGamesCreatedError as e:
+        return jsonify({'error': str(e), 'code': e.code, 'retryAfter': e.retry_after}), 429, \
+            {'Retry-After': str(e.retry_after)}
     except PlanningPokerException as e:
         return jsonify({'error': str(e), 'code': e.code}), 400
 

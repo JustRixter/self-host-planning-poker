@@ -44,5 +44,14 @@ class RoomAgentAccess(Model):
         database = database_proxy
 
 
+class RoomActivity(Model):
+    """When a game was last opened (created, joined by a player or used by an AI agent), to delete forgotten games"""
+    game = CharField(primary_key=True)  # StoredGame.uuid, as a string
+    last_opened_at = DateTimeField()
+
+    class Meta:
+        database = database_proxy
+
+
 def create_tables():
-    database_proxy.create_tables([StoredGame, StoredStory, RoomAgentAccess], safe=True)
+    database_proxy.create_tables([StoredGame, StoredStory, RoomAgentAccess, RoomActivity], safe=True)

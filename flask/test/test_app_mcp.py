@@ -239,6 +239,59 @@ class McpTestCase(unittest.TestCase):
         self.assertEqual((info['backlog'], info['history']), ([], []))
         alice.disconnect()
 
+    def create_room(self, **arguments):
+        response = self.rpc('tools/call', {'name': 'create_room', 'arguments': arguments})
+        self.assertEqual(response.status_code, 200)
+        return response.get_json()['result']
+
+    def test_an_agent_creates_a_room_with_its_backlog(self):
+        tools = {tool['name']: tool for tool in self.rpc('tools/list').get_json()['result']['tools']}
+        self.assertNotIn('room', tools['create_room']['inputSchema']['properties'])
+        result = self.create_room(name='  Sprint   43 ', deck='T_SHIRTS', stories=[
+            {'name': 'Login timeout', 'ref': 'ABC-1'}, {'name': 'Export', 'ref': 'ABC-2'}])
+        self.assertFalse(result['isError'], result)
+        room = result['structuredContent']
+        self.assertEqual((room['name'], room['deck'], room['added']), ('Sprint 43', 'T_SHIRTS', [1, 2]))
+        self.assertEqual(room['link'], f"http://localhost/game/{room['room']}")
+        self.assertTrue(room['agent_link'].startswith(room['link'] + '?agent='))
+        # the agent link opens the room, the link of the players does not
+        backlog = self.call('list_backlog', room=room['agent_link'])['structuredContent']['backlog']
+        self.assertEqual([story['ref'] for story in backlog], ['ABC-1', 'ABC-2'])
+        self.assertTrue(self.call('list_backlog', room=room['link'])['isError'])
+        # the players see that agents are let in
+        _, info = self.player('Alice', room['room'])
+        self.assertTrue(info['agentAccess'])
+        self.assertEqual(info['current']['ref'], 'ABC-1')
+        self.gm.games.pop(room['room'], None)
+
+    def test_create_room_without_stories_and_invalid_input(self):
+        room = self.create_room(name='Empty')['structuredContent']
+        self.assertEqual((room['deck'], room['added']), ('FIBONACCI', []))
+        before = self.gm.games.copy()
+        for arguments in ({}, {'name': ' '}, {'name': 'x', 'deck': 'HOLDEM'}, {'name': 'x', 'stories': 'x'},
+                          {'name': 'x', 'stories': [{'name': 'x', 'url': 'javascript:alert(1)'}]}):
+            self.assertTrue(self.create_room(**arguments)['isError'], arguments)
+        self.assertEqual(self.gm.games.keys(), before.keys(), 'nothing is created when the input is invalid')
+
+    def test_create_room_shares_the_limit_of_the_creation_of_games(self):
+        from rate_limit import RateLimiter
+        previous = self.flask_app.create_limiter
+        self.flask_app.create_limiter = RateLimiter(2, 3600)
+        try:
+            self.assertFalse(self.create_room(name='One')['isError'])
+            self.assertEqual(self.http.post('/create', json={'name': 'Two', 'deck': 'FIBONACCI'}).status_code, 200)
+            refused = self.create_room(name='Three')
+            self.assertTrue(refused['isError'])
+            self.assertIn('Too many games created', refused['content'][0]['text'])
+            self.assertEqual(self.http.post('/create', json={'name': 'Four', 'deck': 'FIBONACCI'}).status_code, 429)
+        finally:
+            self.flask_app.create_limiter = previous
+
+    def test_create_room_is_off_with_the_mcp_server(self):
+        self.flask_app.mcp_enabled = False
+        response = self.rpc('tools/call', {'name': 'create_room', 'arguments': {'name': 'x'}})
+        self.assertEqual(response.status_code, 404)
+
 
 if __name__ == '__main__':
     unittest.main()

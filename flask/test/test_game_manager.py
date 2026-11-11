@@ -1,5 +1,6 @@
 import unittest
 import uuid
+from datetime import datetime, timedelta, timezone
 from unittest.mock import Mock
 
 from peewee import SqliteDatabase
@@ -8,7 +9,7 @@ from gamestate.deck import Deck
 from gamestate.exceptions import GameDoesNotExistError, DeckDoesNotExistError, \
     GameNotOngoingError
 from gamestate.game_manager import GameManager
-from gamestate.models import StoredGame, StoredStory, database_proxy, create_tables
+from gamestate.models import StoredGame, StoredStory, RoomAgentAccess, RoomActivity, database_proxy, create_tables
 
 
 class GameManagerTestCase(unittest.TestCase):
@@ -326,6 +327,74 @@ class GameManagerTestCase(unittest.TestCase):
         stored = GameManager().get_for_stories(game_id)
         self.assertEqual(stored.get_history(), [])
         self.assertEqual([story['name'] for story in stored.get_backlog()], ['B'])
+
+    def age(self, game_id, days):
+        """Pretends that the game was last opened `days` ago"""
+        RoomActivity.update(last_opened_at=datetime.now(timezone.utc).replace(tzinfo=None) - timedelta(days=days)) \
+            .where(RoomActivity.game == game_id).execute()
+
+    def test_forgotten_games_are_deleted_with_their_stories(self):
+        gm = GameManager()
+        gm.retention = timedelta(days=14)
+        old = gm.create('Old')
+        gm.add_to_backlog(old, [{'name': 'A'}])
+        gm.enable_agent_access(old)
+        recent = gm.create('Recent')
+        playing = gm.create('Playing')
+        gm.join_game(playing, 'p1', 'Alice', False)
+        gm.games.pop(old)
+        gm.games.pop(recent)
+        self.age(old, 15)
+        self.age(recent, 13)
+        self.age(playing, 30)  # somebody plays for weeks without leaving: never delete a game being played
+
+        self.assertGreaterEqual(gm.cleanup(), 1)
+        with self.assertRaises(GameDoesNotExistError):
+            gm.get_for_stories(old)
+        for model, field in ((StoredStory, StoredStory.game), (RoomAgentAccess, RoomAgentAccess.game),
+                             (RoomActivity, RoomActivity.game)):
+            self.assertEqual(model.select().where(field == old).count(), 0, model.__name__)
+        self.assertEqual(gm.get_for_stories(recent).name, 'Recent')
+        self.assertEqual(gm.get_for_stories(playing).name, 'Playing')
+
+    def test_opening_a_game_keeps_it(self):
+        gm = GameManager()
+        gm.retention = timedelta(days=14)
+        joined = gm.create('Joined')
+        used_by_agent = gm.create('Agent')
+        _, key = gm.enable_agent_access(used_by_agent)
+        gm.games.clear()
+        for game_id in (joined, used_by_agent):
+            self.age(game_id, 20)
+        gm.join_game(joined, 'p1', 'Alice', False)
+        gm.leave_game(joined, 'p1')
+        gm.authorize_agent(used_by_agent, key)
+        self.assertEqual(gm.cleanup(), 0)
+        self.assertEqual({gm.get_for_stories(g).name for g in (joined, used_by_agent)}, {'Joined', 'Agent'})
+
+    def test_games_from_before_the_activity_get_the_whole_delay(self):
+        game_id = str(uuid.uuid4())
+        StoredGame.create(uuid=game_id, name='Legacy', deck='FIBONACCI')
+        gm = GameManager()
+        gm.retention = timedelta(days=14)
+        gm.cleanup()
+        self.assertEqual(gm.get_for_stories(game_id).name, 'Legacy')
+        self.age(game_id, 15)
+        gm.cleanup()
+        with self.assertRaises(GameDoesNotExistError):
+            gm.get_for_stories(game_id)
+
+    def test_cleanup_runs_at_most_once_an_hour_and_can_be_turned_off(self):
+        gm = GameManager()
+        self.assertEqual(gm.cleanup_if_due(), 0, 'no retention: games are kept forever')
+        gm.retention = timedelta(days=14)
+        old = gm.create('Old')  # creating a game runs the cleanup once
+        gm.games.pop(old)
+        self.age(old, 15)
+        self.assertEqual(gm.cleanup_if_due(), 0, 'it already ran less than an hour ago')
+        self.assertGreaterEqual(gm.cleanup(), 1)
+        with self.assertRaises(GameDoesNotExistError):
+            gm.get_for_stories(old)
 
 
 if __name__ == '__main__':
