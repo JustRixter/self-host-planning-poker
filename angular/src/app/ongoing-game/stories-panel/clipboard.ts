@@ -33,6 +33,19 @@ export async function copyTable(header: string[], rows: string[][]): Promise<boo
   return legacyCopy(text);
 }
 
+/** Copies plain text to the clipboard. Returns whether the copy succeeded. */
+export async function copyText(text: string): Promise<boolean> {
+  try {
+    if (navigator.clipboard) {
+      await navigator.clipboard.writeText(text);
+      return true;
+    }
+  } catch {
+    // Fall through to the legacy way
+  }
+  return legacyCopy(text);
+}
+
 /** navigator.clipboard is only available on secure origins (HTTPS or localhost), and this app is often served over HTTP */
 function legacyCopy(text: string): boolean {
   const textarea = document.createElement('textarea');

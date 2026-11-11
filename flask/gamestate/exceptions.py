@@ -32,3 +32,7 @@ class StoryDoesNotExistError(PlanningPokerException):
 
 class InvalidStoryError(PlanningPokerException):
     code = 4009
+
+
+class AgentAccessDeniedError(PlanningPokerException):
+    code = 4010

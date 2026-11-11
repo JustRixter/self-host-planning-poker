@@ -5,7 +5,7 @@ import sys
 import uuid
 from urllib.parse import urlparse
 
-from flask import Flask, request, session, render_template, jsonify, Response
+from flask import Flask, request, session, render_template, jsonify
 from flask_cors import CORS
 from flask_socketio import SocketIO, join_room, leave_room, emit
 from werkzeug.middleware.proxy_fix import ProxyFix
@@ -16,7 +16,6 @@ from gamestate.exceptions import PlanningPokerException
 from gamestate.game_manager import GameManager
 from gamestate.models import database_proxy, create_tables
 from mcp_server import McpServer
-from rooms_api import parse_room, full_view, to_markdown, to_csv
 from rate_limit import RateLimiter, parse_rate
 
 app = Flask(__name__)
@@ -57,34 +56,36 @@ app_root = os.getenv('APP_ROOT', '/')
 if not app_root.endswith('/'):
     app_root += '/'
 
-# The HTTP API (/api) and the MCP server (/mcp) for AI agents and scripts. Like the game itself, knowing the id of a
-# room is what gives access to it; API_TOKEN adds a shared secret on top: `Authorization: Bearer <token>`.
-api_enabled = os.getenv('API_ENABLED', 'true').strip().lower() not in ('false', '0', 'no', 'off')
-api_token = os.getenv('API_TOKEN') or None
+# The MCP server (/mcp) lets AI agents read and prepare the stories of the rooms whose players turned on
+# "AI agent access", with the agent link of the room. MCP_ENABLED=false turns it off for the whole server.
+mcp_enabled = os.getenv('MCP_ENABLED', 'true').strip().lower() not in ('false', '0', 'no', 'off')
 
 
 def room_link(room_id: str) -> str:
     return f"{request.host_url.rstrip('/')}{app_root}game/{room_id}"
 
 
-def notify_room(room_id: str, info: dict) -> None:
-    """Tells the players of a room that its stories changed, when the change does not come from one of them"""
+def agent_link(room_id: str, key: str) -> str:
+    return f'{room_link(room_id)}?agent={key}'
+
+
+def notify_room(room_id: str, info: dict, activity: dict) -> None:
+    """Tells the players of a room that an AI agent changed its stories"""
     socketio.emit('info', info, to=room_id)
+    socketio.emit('agent_activity', activity, to=room_id)
 
 
 mcp = McpServer(gm, notify_room, room_link)
 
 
-def api_request_refused():
-    """The response refusing a request to the API, or None if it is allowed"""
-    if not api_enabled:
-        return jsonify({'error': 'The API is disabled on this server'}), 404
+def mcp_request_refused():
+    """The response refusing a request to the MCP server, or None if it is allowed"""
+    if not mcp_enabled:
+        return jsonify({'error': 'The MCP server is turned off on this server'}), 404
     origin = request.headers.get('Origin')
-    # Browsers send an Origin: other websites must not use the API of a server on the network of a player
+    # Browsers send an Origin: other websites must not use the MCP server of a server on the network of a player
     if origin and urlparse(origin).netloc != request.host:
         return jsonify({'error': 'Cross-origin requests are not allowed'}), 403
-    if api_token and request.headers.get('Authorization') != f'Bearer {api_token}':
-        return jsonify({'error': 'Missing or wrong API token'}), 401, {'WWW-Authenticate': 'Bearer'}
     return None
 
 
@@ -110,35 +111,19 @@ def request_too_large(_error):
     return jsonify({'error': f"Request too large: {app.config['MAX_CONTENT_LENGTH'] // 1024} KB at most"}), 413
 
 
-@app.route('/api/rooms/<string:room>', methods=['GET'])
-def api_room(room):
-    """Everything about the stories of a room, as JSON (default), Markdown (?format=markdown) or CSV (?format=csv)"""
-    refused = api_request_refused()
-    if refused:
-        return refused
-    try:
-        room_id = parse_room(room)
-        game = gm.get_for_stories(room_id)
-    except PlanningPokerException as e:
-        return jsonify({'error': str(e), 'code': e.code}), 404
-    export_format = request.args.get('format', 'json')
-    if export_format == 'markdown':
-        return Response(to_markdown(game), mimetype='text/markdown')
-    if export_format == 'csv':
-        return Response(to_csv(game), mimetype='text/csv',
-                        headers={'Content-Disposition': f'attachment; filename="stories-{room_id}.csv"'})
-    return jsonify(full_view(game, room_id, room_link))
-
-
 @app.route('/mcp', methods=['POST'])
 def mcp_endpoint():
-    refused = api_request_refused()
+    refused = mcp_request_refused()
     if refused:
         return refused
     message = request.get_json(force=True, silent=True)
     if message is None:
         return jsonify({'jsonrpc': '2.0', 'id': None, 'error': {'code': -32700, 'message': 'Parse error'}}), 400
-    response = mcp.handle(message, default_room=request.args.get('room'))
+    # A server URL for a single room: /mcp?room=<room>&agent=<key>
+    default_room = request.args.get('room')
+    if default_room and request.args.get('agent'):
+        default_room = f"{default_room}?agent={request.args['agent']}"
+    response = mcp.handle(message, default_room=default_room)
     if response is None:
         return '', 202
     return jsonify(response)
@@ -183,6 +168,7 @@ def join(data):
     emit('state', state, to=game_id, json=True)
 
     info['playerId'] = player_id
+    info['mcpAvailable'] = mcp_enabled
     return info
 
 
@@ -308,6 +294,35 @@ def clear_backlog():
     game_id = session['game_id']
 
     info = gm.clear_backlog(game_id)
+    emit('info', info, to=game_id, json=True)
+
+
+@socketio.event
+def enable_agent_access():
+    """Lets AI agents in the room: answers the agent link to give them"""
+    game_id = session['game_id']
+    if not mcp_enabled:
+        return {'error': True, 'message': 'The MCP server is turned off on this server', 'code': 4010}
+
+    info, key = gm.enable_agent_access(game_id)
+    emit('info', info, to=game_id, json=True)
+    return {'link': agent_link(game_id, key)}
+
+
+@socketio.event
+def get_agent_link():
+    """The agent link of the room, to show it again. None if agents are not let in."""
+    game_id = session['game_id']
+
+    key = gm.get_agent_key(game_id)
+    return {'link': agent_link(game_id, key) if key and mcp_enabled else None}
+
+
+@socketio.event
+def disable_agent_access():
+    game_id = session['game_id']
+
+    info = gm.disable_agent_access(game_id)
     emit('info', info, to=game_id, json=True)
 
 

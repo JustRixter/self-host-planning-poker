@@ -87,10 +87,11 @@ class CreateEndpointTestCase(unittest.TestCase):
         self.assertEqual(mcp.status_code, 413)
         # the largest backlog the server accepts still fits
         game_id = self.flask_app.gm.create('Big backlog')
+        _, key = self.flask_app.gm.enable_agent_access(game_id)
         stories = [{'name': 'Історія ' * 12, 'ref': f'ABC-{i}', 'url': 'https://tracker.example.com/' + 'p' * 450}
                    for i in range(200)]
         response = self.http.post('/mcp', json={'jsonrpc': '2.0', 'id': 1, 'method': 'tools/call', 'params': {
-            'name': 'add_to_backlog', 'arguments': {'room': game_id, 'stories': stories}}})
+            'name': 'add_to_backlog', 'arguments': {'room': f'http://x/game/{game_id}?agent={key}', 'stories': stories}}})
         self.assertEqual(response.status_code, 200)
         self.assertEqual(len(response.get_json()['result']['structuredContent']['added']), 200)
 

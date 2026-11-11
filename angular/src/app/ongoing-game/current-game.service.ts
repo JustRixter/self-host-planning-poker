@@ -2,7 +2,7 @@ import { inject, Injectable } from '@angular/core';
 import { Manager, Socket } from 'socket.io-client';
 import { environment } from '../../environments/environment';
 import { BehaviorSubject, distinctUntilChanged, filter, map, Observable, Subject } from 'rxjs';
-import { ErrorMessage, GameInfo, GameState, NewStory } from '../model/events';
+import { AgentActivity, AgentLinkResponse, ErrorMessage, GameInfo, GameState, NewStory } from '../model/events';
 import { Deck, decksDict } from '../model/deck';
 import { ActivatedRouteSnapshot, CanActivateFn, Router, UrlTree } from '@angular/router';
 import { TranslocoService } from '@jsverse/transloco';
@@ -30,6 +30,8 @@ export class CurrentGameService {
   private newGameSubject = new Subject<void>();
   private departuresSubject = new Subject<string>();
   private connectionSubject = new BehaviorSubject<ConnectionState>('connected');
+  private mcpAvailableSubject = new BehaviorSubject<boolean>(false);
+  private agentActivitySubject = new Subject<AgentActivity>();
 
   /** The game we are in: after a lost connection, we have to join it again */
   private gameId?: string;
@@ -65,6 +67,7 @@ export class CurrentGameService {
       }
       this.infoSubject.next(info);
     });
+    this.socket.on('agent_activity', (activity: AgentActivity) => this.agentActivitySubject.next(activity));
     this.socket.on('new_game', () => {
       this.lastPick = null;
       this.newGameSubject.next();
@@ -133,6 +136,16 @@ export class CurrentGameService {
     return this.newGameSubject.asObservable();
   }
 
+  /** What AI agents change in the stories of the game */
+  public get agentActivity$(): Observable<AgentActivity> {
+    return this.agentActivitySubject.asObservable();
+  }
+
+  /** Whether the server lets games turn on the access of AI agents */
+  public get mcpAvailable$(): Observable<boolean> {
+    return this.mcpAvailableSubject.asObservable();
+  }
+
   public get revealed$(): Observable<boolean> {
     return this.gameInfo$.pipe(
       map((info: GameInfo | null) => info !== null ? info.revealed : false)
@@ -164,6 +177,7 @@ export class CurrentGameService {
           return this.router.parseUrl('/');
         } else {
           this.gameId = gameId;
+          this.mcpAvailableSubject.next(!!response.mcpAvailable);
           this.infoSubject.next(response);
           this.userInformation.setPlayerIdSubject(response.playerId);
           return true;
@@ -193,6 +207,7 @@ export class CurrentGameService {
           this.router.navigateByUrl('/');
           return;
         }
+        this.mcpAvailableSubject.next(!!response.mcpAvailable);
         this.infoSubject.next(response);
         this.userInformation.setPlayerIdSubject(response.playerId);
         if (this.lastPick !== null && !response.revealed) {
@@ -257,6 +272,35 @@ export class CurrentGameService {
 
   public clearBacklog(): void {
     this.socket.emit('clear_backlog', (response?: ErrorMessage) => this.handleError(response));
+  }
+
+  /** Lets AI agents in the game. Resolves to its agent link, or null if the server refused. */
+  public enableAgentAccess(): Promise<string | null> {
+    return this.agentLinkRequest('enable_agent_access');
+  }
+
+  /** The agent link of the game, or null if agents are not let in */
+  public getAgentLink(): Promise<string | null> {
+    return this.agentLinkRequest('get_agent_link');
+  }
+
+  public disableAgentAccess(): void {
+    this.socket.emit('disable_agent_access', (response?: ErrorMessage) => this.handleError(response));
+  }
+
+  private agentLinkRequest(event: string): Promise<string | null> {
+    return this.socket.emitWithAck(event).then(
+      (response: AgentLinkResponse | ErrorMessage) => {
+        if ('error' in response) {
+          this.handleError(response);
+          return null;
+        }
+        return response.link;
+      },
+      (reason: any) => {
+        this.handleError(reason);
+        return null;
+      });
   }
 
   public pickCard(cardValue: number | null): void {

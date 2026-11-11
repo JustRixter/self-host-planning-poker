@@ -3,3 +3,8 @@
     {{ t('left', { names: format(shown, extra > 0 ? t('more', { count: extra }) : undefined) }) }}
   </p>
 }
+@if (agentActivity; as activity) {
+  <p class="departures-text" role="status" aria-live="polite" *transloco="let t; read 'agentActivity'">
+    {{ t(activity.key, activity.params) }}
+  </p>
+}

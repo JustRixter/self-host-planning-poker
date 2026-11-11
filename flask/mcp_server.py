@@ -10,14 +10,16 @@ from typing import Any, Callable, Optional
 from gamestate.deck import card_from_label
 from gamestate.exceptions import PlanningPokerException, InvalidCardValueError
 from gamestate.game_manager import GameManager
-from rooms_api import parse_room, room_view, stories_view, backlog_view, to_markdown, to_csv
+from rooms_api import parse_agent_link, room_view, stories_view, backlog_view, to_markdown, to_csv
 
 PROTOCOL_VERSIONS = ('2025-11-25', '2025-06-18', '2025-03-26', '2024-11-05')
 SERVER_INFO = {'name': 'self-host-planning-poker', 'title': 'Planning Poker', 'version': '1.0.0'}
 
 INSTRUCTIONS = """\
 Planning Poker rooms where a team estimates stories by voting with cards.
-Every tool takes the room: its id or the link to join it (unless the server URL already has ?room=<id>).
+Every tool takes the room as its agent link: https://<server>/game/<room>?agent=<key>. The players of a room give
+it once they turn on "AI agent access" in the room; the link to join the room is not enough. If a tool answers that
+agents are not allowed, ask the user for the agent link of the room.
 Stories waiting to be estimated are in the backlog: the first one is estimated at the next vote, and the
 estimate (the most picked card, the highest one on a tie) is recorded with every player's vote.
 Typical uses: fill the backlog from an issue tracker with add_to_backlog (keep the issue key in `ref` and its link
@@ -26,7 +28,8 @@ Stories with a low agreement or far apart votes are worth discussing again: requ
 
 ROOM_PROPERTY = {
     'type': 'string',
-    'description': 'The room: its id (a UUID) or the link to join it. Optional if the server URL has ?room=<id>.',
+    'description': 'The agent link of the room: https://<server>/game/<room>?agent=<key>, copied from the room once '
+                   'a player turned on "AI agent access". Optional if the URL of the server has ?room=<id>&agent=<key>.',
 }
 STORY_ID_PROPERTY = {'type': 'integer', 'description': 'The id of the story (not its position)'}
 
@@ -132,8 +135,9 @@ def _integer(arguments: dict, name: str) -> int:
 
 
 class McpServer:
-    def __init__(self, gm: GameManager, notify: Callable[[str, dict], None], room_link: Callable[[str], str]):
-        """notify(room, info) tells the players of a room that its stories changed"""
+    def __init__(self, gm: GameManager, notify: Callable[[str, dict, dict], None], room_link: Callable[[str], str]):
+        """notify(room, info, activity) tells the players of a room that an agent changed its stories.
+        activity: {'action': str, 'count'?: int, 'story'?: str}"""
         self.gm = gm
         self.notify = notify
         self.room_link = room_link
@@ -178,7 +182,8 @@ class McpServer:
 
     def call_tool(self, name: str, arguments: dict, default_room: Optional[str] = None) -> dict:
         try:
-            room = parse_room(arguments.get('room') or default_room)
+            room, key = parse_agent_link(arguments.get('room') or default_room)
+            self.gm.authorize_agent(room, key)
             output = getattr(self, f'_tool_{name}')(room, arguments)
         except (PlanningPokerException, ToolInputError) as e:
             return {'content': [{'type': 'text', 'text': str(e)}], 'isError': True}
@@ -206,7 +211,8 @@ class McpServer:
         if not isinstance(stories, list) or not stories:
             raise ToolInputError('`stories` must be a list of stories: [{"name": ..., "ref": ..., "url": ...}]')
         info, result = self.gm.add_to_backlog(room, stories)
-        self.notify(room, info)
+        if result['added']:
+            self.notify(room, info, {'action': 'added', 'count': len(result['added'])})
         return {'room': room, **result, 'backlog_size': len(info['backlog'])}
 
     def _tool_update_story(self, room: str, arguments: dict):
@@ -219,28 +225,30 @@ class McpServer:
                 raise InvalidCardValueError(f'{estimate} is not a card of the deck {deck.name}')
             estimate = card
         info = self.gm.update_story(room, story_id, arguments.get('name'), estimate)
-        self.notify(room, info)
+        self.notify(room, info, {'action': 'updated', 'story': self.__story_label(room, story_id)})
         return self.__story(room, story_id)
 
     def _tool_move_story(self, room: str, arguments: dict):
         info = self.gm.move_story(room, _integer(arguments, 'id'), _integer(arguments, 'position'))
-        self.notify(room, info)
+        self.notify(room, info, {'action': 'moved'})
         return {'room': room, **backlog_view(self.gm.get_for_stories(room))}
 
     def _tool_requeue_story(self, room: str, arguments: dict):
-        info = self.gm.requeue_story(room, _integer(arguments, 'id'))
-        self.notify(room, info)
+        story_id = _integer(arguments, 'id')
+        info = self.gm.requeue_story(room, story_id)
+        self.notify(room, info, {'action': 'requeued', 'story': self.__story_label(room, story_id)})
         return {'room': room, **backlog_view(self.gm.get_for_stories(room))}
 
     def _tool_delete_story(self, room: str, arguments: dict):
         story_id = _integer(arguments, 'id')
+        label = self.__story_label(room, story_id)
         info = self.gm.delete_story(room, story_id)
-        self.notify(room, info)
+        self.notify(room, info, {'action': 'deleted', 'story': label})
         return {'room': room, 'deleted': story_id}
 
     def _tool_clear_backlog(self, room: str, _arguments: dict):
         info = self.gm.clear_backlog(room)
-        self.notify(room, info)
+        self.notify(room, info, {'action': 'cleared'})
         return {'room': room, 'backlog_size': 0}
 
     def _tool_export_stories(self, room: str, arguments: dict):
@@ -249,6 +257,13 @@ class McpServer:
             raise ToolInputError('`format` must be markdown or csv')
         game = self.gm.get_for_stories(room)
         return to_csv(game) if export_format == 'csv' else to_markdown(game)
+
+    def __story_label(self, room: str, story_id: int) -> str:
+        """How the players know a story: 'ABC-1 Login timeout', or its id if it has neither ref nor name"""
+        story = self.__story(room, story_id)['story']
+        if not story:
+            return f'#{story_id}'
+        return ' '.join(part for part in (story['ref'], story['name']) if part) or f'#{story_id}'
 
     def __story(self, room: str, story_id: int) -> dict:
         game = self.gm.get_for_stories(room)

@@ -34,6 +34,8 @@ class Game:
         # The story estimated by the revealed turn, shown as the current one until the next turn
         self.__turn_story_id: Optional[int] = None
         self.__next_story_id = 1
+        # Whether the players let AI agents in (through the MCP server, with the agent link of the game)
+        self.agent_access = False
         for story in stories or []:
             self.__restore(story)
 
@@ -316,4 +318,5 @@ class Game:
             'total': self.get_total(),
             'backlog': self.get_backlog(),
             'current': self.get_current_story(),
+            'agentAccess': self.agent_access,
         }

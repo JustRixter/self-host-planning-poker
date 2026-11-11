@@ -2,6 +2,7 @@ import { ChangeDetectionStrategy, Component, DestroyRef } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { TranslocoDirective, TranslocoService } from '@jsverse/transloco';
 import { CurrentGameService } from '../current-game.service';
+import { AgentActivity } from '../../model/events';
 
 /** A departure is only announced if the person has not come back by then (a reload or a flaky connection) */
 const GRACE_MS = 5_000;
@@ -12,6 +13,7 @@ const MAX_NAMES = 2;
 
 /**
  * Says, in a discreet line on the table, who has just left the game: their cards disappear, which could go unnoticed.
+ * A second line says what an AI agent has just changed in the stories (only the latest change).
  *
  * Meant not to be a nuisance when somebody keeps joining and leaving: nothing is said about somebody who comes back
  * within a few seconds, everybody is merged in one line (no stack of notices), and the line fades by itself.
@@ -28,11 +30,14 @@ export class DeparturesComponent {
   /** The names to display, and how many other people left too */
   shown: string[] = [];
   extra = 0;
+  /** The latest change made by an AI agent, while it is mentioned: the key of its text and the parameters */
+  agentActivity: { key: string; params: AgentActivity } | null = null;
 
   // The people who left less than GRACE_MS ago, who are not announced yet
   private pending = new Map<string, ReturnType<typeof setTimeout>>();
   // The people who are announced. The insertion order is the order of the departures
   private gone = new Map<string, ReturnType<typeof setTimeout>>();
+  private agentActivityTimer?: ReturnType<typeof setTimeout>;
 
   constructor(currentGameService: CurrentGameService,
               private transloco: TranslocoService,
@@ -43,7 +48,11 @@ export class DeparturesComponent {
     currentGameService.state$
       .pipe(takeUntilDestroyed(destroyRef))
       .subscribe((state) => this.back(new Set(Object.values(state).map((player) => player.name))));
+    currentGameService.agentActivity$
+      .pipe(takeUntilDestroyed(destroyRef))
+      .subscribe((activity) => this.agentChanged(activity));
     destroyRef.onDestroy(() => {
+      clearTimeout(this.agentActivityTimer);
       this.pending.forEach((timer) => clearTimeout(timer));
       this.gone.forEach((timer) => clearTimeout(timer));
     });
@@ -57,6 +66,14 @@ export class DeparturesComponent {
     } catch {
       return items.join(', ');
     }
+  }
+
+  /** The latest change replaces the previous one: no stack of notices when an agent does several things */
+  private agentChanged(activity: AgentActivity): void {
+    const key = activity.action === 'added' && activity.count === 1 ? 'addedOne' : activity.action;
+    this.agentActivity = { key: key, params: activity };
+    clearTimeout(this.agentActivityTimer);
+    this.agentActivityTimer = setTimeout(() => this.agentActivity = null, DISPLAY_MS);
   }
 
   private left(name: string): void {

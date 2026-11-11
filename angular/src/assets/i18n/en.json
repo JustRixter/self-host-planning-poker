@@ -85,7 +85,8 @@
     "4008": "This story does not exist.",
     "4009": "This story is not valid: \"{{message}}\"",
     "tooManyGames": "Too many games were created from your network. Try again in {{minutes}} min, or reuse an existing game: its link keeps working.",
-    "createFailed": "The game could not be created (error {{status}})."
+    "createFailed": "The game could not be created (error {{status}}).",
+    "4010": "AI agents cannot be let in: \"{{message}}\""
   },
   "theme": {
     "toggle": "Theme: {{mode}} (click to change)",
@@ -137,5 +138,29 @@
     "estimated": "Estimated",
     "skip": "Skip",
     "skipHint": "Estimate it later: move it to the end of the backlog"
+  },
+  "agentAccess": {
+    "title": "AI agents",
+    "on": "On",
+    "description": "Let an AI agent (Claude, Cursor, Copilot…) read the estimates of this room and fill its backlog, for instance from your issue tracker.",
+    "enable": "Connect an AI agent",
+    "linkHelp": "Give this link to your agent, in its chat. Anyone with it can read and change the stories of this room: every player sees that it is on.",
+    "linkLabel": "Agent link of this room",
+    "copy": "Copy",
+    "copied": "Copied!",
+    "setupTitle": "First time? Connect your agent to this server",
+    "setupHelp": "Add this MCP server to your agent once (for instance: claude mcp add --transport http planning-poker <address>). The README explains it for other agents.",
+    "serverLabel": "Address of the MCP server",
+    "disable": "Turn off",
+    "disableConfirm": "Turn off the access of AI agents? Their link stops working: turning it on again gives a new one."
+  },
+  "agentActivity": {
+    "added": "An AI agent added {{count}} stories to the backlog",
+    "addedOne": "An AI agent added a story to the backlog",
+    "updated": "An AI agent updated {{story}}",
+    "moved": "An AI agent reordered the backlog",
+    "requeued": "An AI agent put {{story}} back in the backlog",
+    "deleted": "An AI agent deleted {{story}}",
+    "cleared": "An AI agent cleared the backlog"
   }
 }

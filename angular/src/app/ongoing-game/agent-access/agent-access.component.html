@@ -1,0 +1,45 @@
+@if (view$ | async; as view) {
+  @if (view.available) {
+    <section class="px-3 px-lg-4 pb-3 pb-lg-4 agent-access" *transloco="let t; read 'agentAccess'" aria-labelledby="agent-access-title">
+      <div class="border-top pt-3">
+        <div class="d-flex justify-content-between align-items-center gap-2 mb-2">
+          <h2 id="agent-access-title" class="fs-6 fw-semibold mb-0 d-flex align-items-center gap-2">
+            <svg class="bi" width="1em" height="1em" fill="currentColor" aria-hidden="true"><use xlink:href="assets/bootstrap-icons.svg#robot"/></svg>
+            {{ t('title') }}
+          </h2>
+          @if (view.enabled) {
+            <span class="badge rounded-pill status-on">{{ t('on') }}</span>
+          }
+        </div>
+
+        @if (!view.enabled) {
+          <p class="small text-muted mb-2">{{ t('description') }}</p>
+          <button type="button" class="btn btn-sm btn-outline-secondary" [disabled]="busy" (click)="enable()">
+            {{ t('enable') }}
+          </button>
+        } @else {
+          <p class="small text-muted mb-2">{{ t('linkHelp') }}</p>
+          <div class="input-group input-group-sm mb-2">
+            <input type="text" class="form-control font-monospace link" readonly [value]="link ?? ''"
+                   [attr.aria-label]="t('linkLabel')" (focus)="$any($event.target).select()">
+            <button type="button" class="btn btn-outline-secondary" [disabled]="!link" (click)="copy('link')">
+              {{ copied === 'link' ? t('copied') : t('copy') }}
+            </button>
+          </div>
+          <details class="small text-muted mb-2">
+            <summary>{{ t('setupTitle') }}</summary>
+            <p class="mt-2 mb-1">{{ t('setupHelp') }}</p>
+            <div class="input-group input-group-sm">
+              <input type="text" class="form-control font-monospace" readonly [value]="serverUrl"
+                     [attr.aria-label]="t('serverLabel')" (focus)="$any($event.target).select()">
+              <button type="button" class="btn btn-outline-secondary" (click)="copy('server')">
+                {{ copied === 'server' ? t('copied') : t('copy') }}
+              </button>
+            </div>
+          </details>
+          <button type="button" class="btn btn-link btn-sm p-0 text-muted turn-off" (click)="disable()">{{ t('disable') }}</button>
+        }
+      </div>
+    </section>
+  }
+}
