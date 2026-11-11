@@ -28,3 +28,7 @@ class SpectatorCannotPlayError(PlanningPokerException):
 
 class StoryDoesNotExistError(PlanningPokerException):
     code = 4008
+
+
+class InvalidStoryError(PlanningPokerException):
+    code = 4009
