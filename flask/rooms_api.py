@@ -1,4 +1,4 @@
-"""Read-only views of a room for the HTTP API and the MCP server: what an agent needs to know about the stories"""
+"""Read-only views of a room for the MCP server: what an agent needs to know about the stories"""
 import csv
 import io
 import re
@@ -10,16 +10,19 @@ from gamestate.exceptions import GameDoesNotExistError
 from gamestate.game import Game
 
 ROOM_ID = re.compile(r'[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}', re.IGNORECASE)
+AGENT_KEY = re.compile(r'[?&#]agent=([A-Za-z0-9_-]+)')
 
 
-def parse_room(value) -> str:
-    """The id of a room, from the id itself or from the link to join it"""
-    if not value:
-        raise GameDoesNotExistError('No room given: pass the id of the room or the link to join it')
-    match = ROOM_ID.search(value) if isinstance(value, str) else None
+def parse_agent_link(value) -> tuple[str, Optional[str]]:
+    """The id of a room and the key of its agent link, from the link (https://<server>/game/<room>?agent=<key>)"""
+    if not value or not isinstance(value, str):
+        raise GameDoesNotExistError('No room given: pass the agent link of the room, which a player can copy in the '
+                                    'room after turning on "AI agent access"')
+    match = ROOM_ID.search(value)
     if not match:
-        raise GameDoesNotExistError(f'{value!r} is not the id of a room, nor the link to one')
-    return match.group(0).lower()
+        raise GameDoesNotExistError(f'{value!r} is not the agent link of a room')
+    key = AGENT_KEY.search(value)
+    return match.group(0).lower(), key.group(1) if key else None
 
 
 def _agreement(votes: list[dict]) -> Optional[float]:
@@ -81,10 +84,6 @@ def room_view(game: Game, room_id: str, room_link: Callable[[str], str]) -> dict
         'estimated_count': len(game.get_history()),
         'total': game.get_total() if has_points(deck) else None,
     }
-
-
-def full_view(game: Game, room_id: str, room_link: Callable[[str], str]) -> dict:
-    return {**room_view(game, room_id, room_link), **backlog_view(game), **stories_view(game)}
 
 
 EXPORT_HEADER = ['#', 'Ref', 'Story', 'Estimate', 'Votes', 'Link']

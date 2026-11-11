@@ -9,6 +9,7 @@ import { TurnSummaryComponent } from './turn-summary/turn-summary.component';
 import { CardTableComponent } from './card-table/card-table.component';
 import { StoriesPanelComponent } from './stories-panel/stories-panel.component';
 import { CurrentStoryComponent } from './current-story/current-story.component';
+import { AgentAccessComponent } from './agent-access/agent-access.component';
 import { NavPlayerInfoComponent } from '../navigation-bar/player-info/nav-player-info.component';
 import { NavGameInfoComponent } from '../navigation-bar/game-info/nav-game-info.component';
 import { NavGameNameComponent } from '../navigation-bar/game-name/nav-game-name.component';
@@ -25,6 +26,7 @@ import { ContainerComponent } from '../shared/container/container.component';
     NavGameNameComponent,
     NavGameInfoComponent,
     StoriesPanelComponent,
+    AgentAccessComponent,
     NavPlayerInfoComponent,
     CardTableComponent,
     CurrentStoryComponent,

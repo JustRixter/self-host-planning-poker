@@ -25,7 +25,7 @@ It features:
   * Light and dark themes (follows your system by default, switchable from the navigation bar)
   * Story names: give the story being estimated a name, shared with all the players
   * Backlog: the stories to estimate, in order ("Next up"). Add them one per line (`ABC-123 Login timeout`, a link to
-    the issue works too), reorder, rename or skip them, or let an [AI agent](#ai-agents-mcp-and-http-api) fill the
+    the issue works too), reorder, rename or skip them, or let an [AI agent](#ai-agents-mcp) fill the
     backlog from your issue tracker. The next story is shown above the table, and revealing the cards estimates it.
   * Estimated stories: a list that is always visible next to the game (below it on small screens). A story is added to it
     each time the cards are revealed, with the most-picked card as its estimate (the highest one on a tie) and every
@@ -36,7 +36,7 @@ It features:
     clears the estimated stories (estimates of different decks cannot be compared) but keeps the backlog.
   * Translations _(inherited from the original project; new strings of this fork are English only and fall back to English)_
  
-It does not integrate with issue trackers itself: an [AI agent](#ai-agents-mcp-and-http-api) can carry the stories
+It does not integrate with issue trackers itself: an [AI agent](#ai-agents-mcp) can carry the stories
 and their estimates between your tracker and a room.
 
 ## Screenshots
@@ -81,10 +81,9 @@ volumes:
 | `SECRET_KEY` (optional) | Secret used to sign the session cookies. A random one is generated at startup if it is not set, which is fine for a single instance. | `SECRET_KEY=change-me` |
 | `CREATE_RATE_LIMIT` (optional) | How many games one address can create: `<number>/<second\|minute\|hour\|day>`, or `0` for no limit. Defaults to `20/hour`. Behind a reverse proxy, set `TRUSTED_PROXIES` too, otherwise every player shares the proxy's address and limit. | `CREATE_RATE_LIMIT=50/day` |
 | `TRUSTED_PROXIES` (optional) | Number of reverse proxies in front of the app, whose `X-Forwarded-For`, `X-Forwarded-Proto` and `X-Forwarded-Host` headers are trusted. Defaults to `0`: set it only when the app is not reachable without the proxies, or anyone can fake their address. | `TRUSTED_PROXIES=1` |
-| `API_ENABLED` (optional) | Set to `false` to turn off the [MCP server and the HTTP API](#ai-agents-mcp-and-http-api) (`/mcp` and `/api`). They are on by default. | `API_ENABLED=false` |
-| `API_TOKEN` (optional) | When set, the MCP server and the HTTP API require the header `Authorization: Bearer <token>`. | `API_TOKEN=change-me` |
+| `MCP_ENABLED` (optional) | Set to `false` to turn off the [MCP server](#ai-agents-mcp) (`/mcp`) for the whole server: the players cannot let AI agents in their rooms anymore. On by default. | `MCP_ENABLED=false` |
 
-### AI agents (MCP) and HTTP API
+### AI agents (MCP)
 
 The server is also a [Model Context Protocol](https://modelcontextprotocol.io) server at `/mcp` (Streamable HTTP, without
 sessions), so that an AI agent such as Claude can read and prepare the stories of a room. Its tools:
@@ -98,24 +97,28 @@ sessions), so that an AI agent such as Claude can read and prepare the stories o
 | `update_story`, `move_story`, `requeue_story`, `delete_story`, `clear_backlog` | Edit the stories, as the players can |
 | `export_stories` | The estimated stories as a Markdown table or CSV |
 
-Every tool takes the room: its id or the link to join it. To work on a single room, put it in the URL of the server
-instead: `https://poker.example.com/mcp?room=<id>`. The players see the changes at once, and the backlog of a room
-can be prepared before anybody joins it.
+#### Who can use it
+
+Agents are not let in any room by default: the link to join a room is not enough. In the room, a player clicks
+_Connect an AI agent_ (under the stories), which gives the **agent link** of the room:
+`https://poker.example.com/game/<room>?agent=<key>`. Give it to your agent in its chat, and it can work on that room.
+
+* Every player of the room sees that agents are let in, can copy the agent link again, and is told when an agent
+  changes the stories ("An AI agent added 5 stories to the backlog").
+* _New link_ replaces the agent link: agents that have the previous one cannot use it anymore. _Turn off_ revokes it.
+* The agent link only gives access to its room. The same connection to the MCP server works for any number of rooms:
+  each one is opened by its own agent link.
 
 #### Connecting an agent
 
-The examples use `https://poker.example.com/mcp`: replace it with the address of your server, and add `?room=<id>` to
-it to work on a single room. Without `API_TOKEN`, leave out the header or token lines. With it, keep the token out of
-the configuration files: the examples read it from the `PLANNING_POKER_TOKEN` environment variable.
+Add the MCP server to your agent once. The examples use `https://poker.example.com/mcp`: replace it with the address
+of your server (the room shows it under _First time? Connect your agent to this server_). There is no token to set up.
 
 <details>
 <summary><b>Claude Code</b></summary>
 
 ```bash
 claude mcp add --transport http planning-poker https://poker.example.com/mcp
-# With API_TOKEN:
-claude mcp add --transport http planning-poker https://poker.example.com/mcp \
-  --header "Authorization: Bearer $PLANNING_POKER_TOKEN"
 ```
 
 Add `--scope project` to share it with your team in the repository's `.mcp.json`.
@@ -124,9 +127,8 @@ Add `--scope project` to share it with your team in the repository's `.mcp.json`
 <details>
 <summary><b>Claude (claude.ai, desktop and mobile apps)</b></summary>
 
-Settings → Connectors → _Add custom connector_, then enter the URL of the server. With `API_TOKEN`, add the
-`Authorization: Bearer <token>` request header in the advanced settings. On Team and Enterprise plans, an owner adds
-the connector under Organization settings → Connectors.
+Settings → Connectors → _Add custom connector_, then enter the address of the server. On Team and Enterprise plans,
+an owner adds the connector under Organization settings → Connectors.
 
 Claude reaches the server from Anthropic's cloud: the server must be reachable from the internet over HTTPS. For a
 server on your local network, use Claude Code or one of the other clients below, which connect from your computer.
@@ -140,10 +142,7 @@ In `~/.cursor/mcp.json` (all projects) or `.cursor/mcp.json` (one project):
 ```json
 {
   "mcpServers": {
-    "planning-poker": {
-      "url": "https://poker.example.com/mcp",
-      "headers": { "Authorization": "Bearer ${env:PLANNING_POKER_TOKEN}" }
-    }
+    "planning-poker": { "url": "https://poker.example.com/mcp" }
   }
 }
 ```
@@ -156,20 +155,13 @@ In `.vscode/mcp.json`, or with the _MCP: Open User Configuration_ command for al
 
 ```json
 {
-  "inputs": [
-    { "id": "planning-poker-token", "type": "promptString", "description": "Planning Poker API token", "password": true }
-  ],
   "servers": {
-    "planning-poker": {
-      "type": "http",
-      "url": "https://poker.example.com/mcp",
-      "headers": { "Authorization": "Bearer ${input:planning-poker-token}" }
-    }
+    "planning-poker": { "type": "http", "url": "https://poker.example.com/mcp" }
   }
 }
 ```
 
-VS Code asks for the token once and stores it securely. Note that the key is `servers`, not `mcpServers`.
+Note that the key is `servers`, not `mcpServers`.
 </details>
 
 <details>
@@ -180,10 +172,7 @@ In `~/.codeium/windsurf/mcp_config.json` (or from Cascade's MCP settings):
 ```json
 {
   "mcpServers": {
-    "planning-poker": {
-      "serverUrl": "https://poker.example.com/mcp",
-      "headers": { "Authorization": "Bearer ${env:PLANNING_POKER_TOKEN}" }
-    }
+    "planning-poker": { "serverUrl": "https://poker.example.com/mcp" }
   }
 }
 ```
@@ -194,8 +183,6 @@ In `~/.codeium/windsurf/mcp_config.json` (or from Cascade's MCP settings):
 
 ```bash
 codex mcp add planning-poker --url https://poker.example.com/mcp
-# With API_TOKEN (the name of the variable, not the token):
-codex mcp add planning-poker --url https://poker.example.com/mcp --bearer-token-env-var PLANNING_POKER_TOKEN
 ```
 
 Or in `~/.codex/config.toml`:
@@ -203,7 +190,6 @@ Or in `~/.codex/config.toml`:
 ```toml
 [mcp_servers.planning-poker]
 url = "https://poker.example.com/mcp"
-bearer_token_env_var = "PLANNING_POKER_TOKEN"
 ```
 </details>
 
@@ -215,10 +201,7 @@ In `~/.gemini/settings.json` (or `.gemini/settings.json` in a project):
 ```json
 {
   "mcpServers": {
-    "planning-poker": {
-      "httpUrl": "https://poker.example.com/mcp",
-      "headers": { "Authorization": "Bearer $PLANNING_POKER_TOKEN" }
-    }
+    "planning-poker": { "httpUrl": "https://poker.example.com/mcp" }
   }
 }
 ```
@@ -229,25 +212,22 @@ Use `httpUrl` (Streamable HTTP), not `url` (which Gemini CLI uses for the older 
 <details>
 <summary><b>Other clients</b></summary>
 
-Any client that supports remote MCP servers over Streamable HTTP works: give it the URL, and the `Authorization`
-header if you set `API_TOKEN`. Clients that only start local (stdio) servers can go through
-[`mcp-remote`](https://www.npmjs.com/package/mcp-remote):
+Any client that supports remote MCP servers over Streamable HTTP works: give it the address of the server. Clients
+that only start local (stdio) servers can go through [`mcp-remote`](https://www.npmjs.com/package/mcp-remote):
 
 ```json
 {
   "mcpServers": {
-    "planning-poker": {
-      "command": "npx",
-      "args": ["-y", "mcp-remote", "https://poker.example.com/mcp",
-               "--header", "Authorization: Bearer ${PLANNING_POKER_TOKEN}"],
-      "env": { "PLANNING_POKER_TOKEN": "<token>" }
-    }
+    "planning-poker": { "command": "npx", "args": ["-y", "mcp-remote", "https://poker.example.com/mcp"] }
   }
 }
 ```
 
 `mcp-remote` refuses plain `http://` addresses other than `localhost` unless you add `--allow-http`.
 </details>
+
+To always work on the same room, put its agent link in the address of the server instead:
+`https://poker.example.com/mcp?room=<room>&agent=<key>`, and the tools need no room anymore.
 
 To check that the server answers, list its tools:
 
@@ -258,15 +238,12 @@ curl -s https://poker.example.com/mcp -H 'Content-Type: application/json' \
 
 #### Using it
 
-Ask your agent, for instance: _"Add the unestimated issues of the current cycle to the room https://poker.example.com/game/…"_, and after
-the session: _"Write the estimates of the room back to the issues"_. The app never talks to your tracker: it keeps the
-`ref` and the `url` of each story, and the agent uses the tracker's own tools.
+Ask your agent, for instance: _"Add the unestimated issues of the current cycle to the room
+https://poker.example.com/game/…?agent=…"_, and after the session: _"Write the estimates of the room back to the
+issues"_. The app never talks to your tracker: it keeps the `ref` and the `url` of each story, and the agent uses the
+tracker's own tools.
 
-The same data is available without MCP: `GET /api/rooms/<id>` returns the room, its backlog and its estimated stories
-as JSON, `?format=markdown` or `?format=csv` as a table.
-
-Like the game itself, knowing the id of a room gives access to it. Set `API_TOKEN` to require a token, or
-`API_ENABLED=false` to turn both off. Requests sent by web pages of other sites are refused.
+Requests sent by web pages of other sites are refused, and `MCP_ENABLED=false` turns the MCP server off.
 
 ### Running behind a reverse-proxy
 
@@ -274,8 +251,7 @@ Refer to [Socket.IO's documentation](https://socket.io/docs/v4/reverse-proxy/)  
 Set `TRUSTED_PROXIES` (usually to `1`) so that the limit on the creation of games applies to each player's address.
 
 The app refuses request bodies larger than 512 KB. If it is reachable from the internet, also consider limiting the
-rate of requests in the proxy (for instance nginx's `limit_req` on `/create`, `/mcp` and `/api/`) and setting
-`API_TOKEN`.
+rate of requests in the proxy (for instance nginx's `limit_req` on `/create` and `/mcp`).
 
 ### Customization
 

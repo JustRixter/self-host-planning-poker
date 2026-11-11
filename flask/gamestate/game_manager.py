@@ -1,13 +1,17 @@
+import hmac
 import json
+import secrets
 import uuid
+from datetime import datetime, timedelta, timezone
 from typing import Optional
 
 from peewee import DoesNotExist, chunked
 
 from gamestate.deck import Deck
-from gamestate.exceptions import GameDoesNotExistError, DeckDoesNotExistError, GameNotOngoingError
+from gamestate.exceptions import GameDoesNotExistError, DeckDoesNotExistError, GameNotOngoingError, \
+    AgentAccessDeniedError
 from gamestate.game import Game
-from gamestate.models import StoredGame, StoredStory, database_proxy
+from gamestate.models import StoredGame, StoredStory, RoomAgentAccess, database_proxy
 from gamestate.player import Player
 
 
@@ -36,7 +40,9 @@ class GameManager:
             stored_game = StoredGame.get(StoredGame.uuid == game_uuid)
         except (ValueError, DoesNotExist):
             raise GameDoesNotExistError(f'Game {game_uuid} does not exist')
-        return Game(stored_game.name, Deck[stored_game.deck], self.__load_stories(game_uuid))
+        game = Game(stored_game.name, Deck[stored_game.deck], self.__load_stories(game_uuid))
+        game.agent_access = RoomAgentAccess.select().where(RoomAgentAccess.game == str(game_uuid)).exists()
+        return game
 
     def get_for_stories(self, game_uuid: str) -> Game:
         """The game, ongoing or not: the stories can be read and prepared before anybody joins.
@@ -44,6 +50,50 @@ class GameManager:
         A game nobody plays is read from the database each time and not kept in memory.
         """
         return self.games.get(game_uuid) or self.__load(game_uuid)
+
+    # AI agents: the players of a game let them in by turning on its agent access, which gives an agent link
+
+    def enable_agent_access(self, game_uuid: str) -> tuple[dict, str]:
+        """Lets AI agents in the game. Returns the info of the game and the key of its agent link (the existing one
+        if agents were already let in)"""
+        game = self.get_for_stories(game_uuid)
+        key = self.get_agent_key(game_uuid)
+        if key is None:
+            key = secrets.token_urlsafe(24)
+            RoomAgentAccess.create(game=str(game_uuid), key=key, created_at=self.__now())
+        game.agent_access = True
+        return game.info(), key
+
+    def renew_agent_key(self, game_uuid: str) -> tuple[dict, str]:
+        """Replaces the key of the agent link: the previous link stops working"""
+        self.disable_agent_access(game_uuid)
+        return self.enable_agent_access(game_uuid)
+
+    def disable_agent_access(self, game_uuid: str) -> dict:
+        game = self.get_for_stories(game_uuid)
+        RoomAgentAccess.delete().where(RoomAgentAccess.game == str(game_uuid)).execute()
+        game.agent_access = False
+        return game.info()
+
+    def get_agent_key(self, game_uuid: str) -> Optional[str]:
+        access = RoomAgentAccess.get_or_none(RoomAgentAccess.game == str(game_uuid))
+        return access.key if access else None
+
+    def authorize_agent(self, game_uuid: str, key: Optional[str]) -> None:
+        """Raises AgentAccessDeniedError unless the players let agents in the game and the key is the one of its link"""
+        self.get_for_stories(game_uuid)  # raises if the game does not exist
+        access = RoomAgentAccess.get_or_none(RoomAgentAccess.game == str(game_uuid))
+        if access is None or not isinstance(key, str) or not hmac.compare_digest(access.key, key):
+            raise AgentAccessDeniedError(
+                'AI agents are not allowed in this room, or this agent link is not valid anymore. In the room, a player '
+                'can turn on "AI agent access" and copy the agent link: https://<server>/game/<room>?agent=<key>')
+        now = self.__now()
+        if access.last_used_at is None or access.last_used_at < now - timedelta(minutes=1):
+            RoomAgentAccess.update(last_used_at=now).where(RoomAgentAccess.game == str(game_uuid)).execute()
+
+    @staticmethod
+    def __now() -> datetime:
+        return datetime.now(timezone.utc).replace(tzinfo=None)
 
     @staticmethod
     def __load_stories(game_uuid: str) -> list[dict]:

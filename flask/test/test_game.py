@@ -8,7 +8,7 @@ from gamestate.game import Game
 from gamestate.player import Player
 
 
-EMPTY_INFO = {'history': [], 'total': 0, 'backlog': [], 'current': None}
+EMPTY_INFO = {'history': [], 'total': 0, 'backlog': [], 'current': None, 'agentAccess': False}
 
 
 def estimated(story_id, estimate, name='', votes=None, ref=None, url=None):
