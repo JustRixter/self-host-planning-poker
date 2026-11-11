@@ -83,7 +83,9 @@
     "4005": "The card you have picked is not an acceptable value of the current deck.",
     "4006": "You are a spectator, you should not be able to pick a card.",
     "4008": "This story does not exist.",
-    "4009": "This story is not valid: \"{{message}}\""
+    "4009": "This story is not valid: \"{{message}}\"",
+    "tooManyGames": "Too many games were created from your network. Try again in {{minutes}} min, or reuse an existing game: its link keeps working.",
+    "createFailed": "The game could not be created (error {{status}})."
   },
   "theme": {
     "toggle": "Theme: {{mode}} (click to change)",

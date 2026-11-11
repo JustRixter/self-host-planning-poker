@@ -79,6 +79,8 @@ volumes:
 |-----------------------|--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|--------------------|
 | `APP_ROOT` (optional) | Allows you to deploy to another path than `/`.<br>See [Configuration examples for deploying on sub‐paths](https://github.com/axeleroy/self-host-planning-poker/wiki/Configuration-examples-for-deploying-on-sub%E2%80%90paths) for more details. | `APP_ROOT=/poker/` |
 | `SECRET_KEY` (optional) | Secret used to sign the session cookies. A random one is generated at startup if it is not set, which is fine for a single instance. | `SECRET_KEY=change-me` |
+| `CREATE_RATE_LIMIT` (optional) | How many games one address can create: `<number>/<second\|minute\|hour\|day>`, or `0` for no limit. Defaults to `20/hour`. Behind a reverse proxy, set `TRUSTED_PROXIES` too, otherwise every player shares the proxy's address and limit. | `CREATE_RATE_LIMIT=50/day` |
+| `TRUSTED_PROXIES` (optional) | Number of reverse proxies in front of the app, whose `X-Forwarded-For`, `X-Forwarded-Proto` and `X-Forwarded-Host` headers are trusted. Defaults to `0`: set it only when the app is not reachable without the proxies, or anyone can fake their address. | `TRUSTED_PROXIES=1` |
 | `API_ENABLED` (optional) | Set to `false` to turn off the [MCP server and the HTTP API](#ai-agents-mcp-and-http-api) (`/mcp` and `/api`). They are on by default. | `API_ENABLED=false` |
 | `API_TOKEN` (optional) | When set, the MCP server and the HTTP API require the header `Authorization: Bearer <token>`. | `API_TOKEN=change-me` |
 
@@ -119,6 +121,11 @@ Like the game itself, knowing the id of a room gives access to it. Set `API_TOKE
 ### Running behind a reverse-proxy
 
 Refer to [Socket.IO's documentation](https://socket.io/docs/v4/reverse-proxy/)  for setting up your reverse-proxy to work correctly with Socket.IO.
+Set `TRUSTED_PROXIES` (usually to `1`) so that the limit on the creation of games applies to each player's address.
+
+The app refuses request bodies larger than 512 KB. If it is reachable from the internet, also consider limiting the
+rate of requests in the proxy (for instance nginx's `limit_req` on `/create`, `/mcp` and `/api/`) and setting
+`API_TOKEN`.
 
 ### Customization
 

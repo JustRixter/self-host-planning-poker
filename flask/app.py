@@ -8,6 +8,7 @@ from urllib.parse import urlparse
 from flask import Flask, request, session, render_template, jsonify, Response
 from flask_cors import CORS
 from flask_socketio import SocketIO, join_room, leave_room, emit
+from werkzeug.middleware.proxy_fix import ProxyFix
 from peewee import SqliteDatabase, OperationalError
 
 from permission_check import check_db_file_permissions
@@ -16,10 +17,23 @@ from gamestate.game_manager import GameManager
 from gamestate.models import database_proxy, create_tables
 from mcp_server import McpServer
 from rooms_api import parse_room, full_view, to_markdown, to_csv
+from rate_limit import RateLimiter, parse_rate
 
 app = Flask(__name__)
 # Set SECRET_KEY to keep it stable across restarts; otherwise a random one is generated at startup
 app.config['SECRET_KEY'] = os.getenv('SECRET_KEY') or secrets.token_hex(32)
+# Largest request body accepted (413 above): 200 stories added to a backlog at once, with long names and links, fit
+app.config['MAX_CONTENT_LENGTH'] = 512 * 1024
+
+# Behind reverse proxies, trust the X-Forwarded-* headers they set (one per proxy): the address of each player is then
+# the real one and not the proxy's, which the rate limit of the creation of games needs
+trusted_proxies = int(os.getenv('TRUSTED_PROXIES', '0'))
+if trusted_proxies > 0:
+    app.wsgi_app = ProxyFix(app.wsgi_app, x_for=trusted_proxies, x_proto=trusted_proxies, x_host=trusted_proxies)
+
+# Games are created without an account: limit how many one address can create, so that nobody fills the database
+create_rate = parse_rate(os.getenv('CREATE_RATE_LIMIT'), '20/hour')
+create_limiter = RateLimiter(*create_rate) if create_rate else None
 
 if app.config['DEBUG']:
     real_db = SqliteDatabase('database.db')
@@ -76,10 +90,24 @@ def api_request_refused():
 
 @app.route('/create', methods=['POST'])
 def create():
-    body = request.json
-    game_name = body['name']
-    game_deck = body['deck']
-    return gm.create(game_name, game_deck)
+    body = request.get_json(silent=True)
+    if not isinstance(body, dict) or not isinstance(body.get('name'), str) or not body['name'].strip() \
+            or not isinstance(body.get('deck'), str):
+        return jsonify({'error': 'Expected {"name": "<name of the game>", "deck": "<deck>"}'}), 400
+    if create_limiter:
+        retry_after = create_limiter.hit(request.remote_addr or 'unknown')
+        if retry_after is not None:
+            return jsonify({'error': 'Too many games created, try again later', 'retryAfter': retry_after}), 429, \
+                {'Retry-After': str(retry_after)}
+    try:
+        return gm.create(body['name'], body['deck'])
+    except PlanningPokerException as e:
+        return jsonify({'error': str(e), 'code': e.code}), 400
+
+
+@app.errorhandler(413)
+def request_too_large(_error):
+    return jsonify({'error': f"Request too large: {app.config['MAX_CONTENT_LENGTH'] // 1024} KB at most"}), 413
 
 
 @app.route('/api/rooms/<string:room>', methods=['GET'])
