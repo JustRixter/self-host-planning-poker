@@ -102,13 +102,163 @@ Every tool takes the room: its id or the link to join it. To work on a single ro
 instead: `https://poker.example.com/mcp?room=<id>`. The players see the changes at once, and the backlog of a room
 can be prepared before anybody joins it.
 
-For instance, with [Claude Code](https://code.claude.com):
+#### Connecting an agent
+
+The examples use `https://poker.example.com/mcp`: replace it with the address of your server, and add `?room=<id>` to
+it to work on a single room. Without `API_TOKEN`, leave out the header or token lines. With it, keep the token out of
+the configuration files: the examples read it from the `PLANNING_POKER_TOKEN` environment variable.
+
+<details>
+<summary><b>Claude Code</b></summary>
 
 ```bash
 claude mcp add --transport http planning-poker https://poker.example.com/mcp
+# With API_TOKEN:
+claude mcp add --transport http planning-poker https://poker.example.com/mcp \
+  --header "Authorization: Bearer $PLANNING_POKER_TOKEN"
 ```
 
-Then ask: _"Add the unestimated issues of the current cycle to the room https://poker.example.com/game/…"_, and after
+Add `--scope project` to share it with your team in the repository's `.mcp.json`.
+</details>
+
+<details>
+<summary><b>Claude (claude.ai, desktop and mobile apps)</b></summary>
+
+Settings → Connectors → _Add custom connector_, then enter the URL of the server. With `API_TOKEN`, add the
+`Authorization: Bearer <token>` request header in the advanced settings. On Team and Enterprise plans, an owner adds
+the connector under Organization settings → Connectors.
+
+Claude reaches the server from Anthropic's cloud: the server must be reachable from the internet over HTTPS. For a
+server on your local network, use Claude Code or one of the other clients below, which connect from your computer.
+</details>
+
+<details>
+<summary><b>Cursor</b></summary>
+
+In `~/.cursor/mcp.json` (all projects) or `.cursor/mcp.json` (one project):
+
+```json
+{
+  "mcpServers": {
+    "planning-poker": {
+      "url": "https://poker.example.com/mcp",
+      "headers": { "Authorization": "Bearer ${env:PLANNING_POKER_TOKEN}" }
+    }
+  }
+}
+```
+</details>
+
+<details>
+<summary><b>VS Code (GitHub Copilot)</b></summary>
+
+In `.vscode/mcp.json`, or with the _MCP: Open User Configuration_ command for all workspaces:
+
+```json
+{
+  "inputs": [
+    { "id": "planning-poker-token", "type": "promptString", "description": "Planning Poker API token", "password": true }
+  ],
+  "servers": {
+    "planning-poker": {
+      "type": "http",
+      "url": "https://poker.example.com/mcp",
+      "headers": { "Authorization": "Bearer ${input:planning-poker-token}" }
+    }
+  }
+}
+```
+
+VS Code asks for the token once and stores it securely. Note that the key is `servers`, not `mcpServers`.
+</details>
+
+<details>
+<summary><b>Windsurf</b></summary>
+
+In `~/.codeium/windsurf/mcp_config.json` (or from Cascade's MCP settings):
+
+```json
+{
+  "mcpServers": {
+    "planning-poker": {
+      "serverUrl": "https://poker.example.com/mcp",
+      "headers": { "Authorization": "Bearer ${env:PLANNING_POKER_TOKEN}" }
+    }
+  }
+}
+```
+</details>
+
+<details>
+<summary><b>OpenAI Codex CLI</b></summary>
+
+```bash
+codex mcp add planning-poker --url https://poker.example.com/mcp
+# With API_TOKEN (the name of the variable, not the token):
+codex mcp add planning-poker --url https://poker.example.com/mcp --bearer-token-env-var PLANNING_POKER_TOKEN
+```
+
+Or in `~/.codex/config.toml`:
+
+```toml
+[mcp_servers.planning-poker]
+url = "https://poker.example.com/mcp"
+bearer_token_env_var = "PLANNING_POKER_TOKEN"
+```
+</details>
+
+<details>
+<summary><b>Gemini CLI</b></summary>
+
+In `~/.gemini/settings.json` (or `.gemini/settings.json` in a project):
+
+```json
+{
+  "mcpServers": {
+    "planning-poker": {
+      "httpUrl": "https://poker.example.com/mcp",
+      "headers": { "Authorization": "Bearer $PLANNING_POKER_TOKEN" }
+    }
+  }
+}
+```
+
+Use `httpUrl` (Streamable HTTP), not `url` (which Gemini CLI uses for the older SSE transport).
+</details>
+
+<details>
+<summary><b>Other clients</b></summary>
+
+Any client that supports remote MCP servers over Streamable HTTP works: give it the URL, and the `Authorization`
+header if you set `API_TOKEN`. Clients that only start local (stdio) servers can go through
+[`mcp-remote`](https://www.npmjs.com/package/mcp-remote):
+
+```json
+{
+  "mcpServers": {
+    "planning-poker": {
+      "command": "npx",
+      "args": ["-y", "mcp-remote", "https://poker.example.com/mcp",
+               "--header", "Authorization: Bearer ${PLANNING_POKER_TOKEN}"],
+      "env": { "PLANNING_POKER_TOKEN": "<token>" }
+    }
+  }
+}
+```
+
+`mcp-remote` refuses plain `http://` addresses other than `localhost` unless you add `--allow-http`.
+</details>
+
+To check that the server answers, list its tools:
+
+```bash
+curl -s https://poker.example.com/mcp -H 'Content-Type: application/json' \
+  -d '{"jsonrpc":"2.0","id":1,"method":"tools/list"}'
+```
+
+#### Using it
+
+Ask your agent, for instance: _"Add the unestimated issues of the current cycle to the room https://poker.example.com/game/…"_, and after
 the session: _"Write the estimates of the room back to the issues"_. The app never talks to your tracker: it keeps the
 `ref` and the `url` of each story, and the agent uses the tracker's own tools.
 
