@@ -1,0 +1,28 @@
+@if (view$ | async; as story) {
+  <div class="container d-flex align-items-center justify-content-center gap-2 pt-3 current-story" *transloco="let t; read 'currentStory'"
+       role="status">
+    <span class="label text-muted small text-uppercase flex-shrink-0">{{ story.estimate === null ? t('estimating') : t('estimated') }}</span>
+    @if (story.ref) {
+      @if (story.url) {
+        <a class="ref flex-shrink-0" [href]="story.url" target="_blank" rel="noopener noreferrer">
+          {{ story.ref }}
+          <svg class="bi" width=".75em" height=".75em" fill="currentColor" aria-hidden="true"><use xlink:href="assets/bootstrap-icons.svg#box-arrow-up-right"/></svg>
+        </a>
+      } @else {
+        <span class="ref flex-shrink-0">{{ story.ref }}</span>
+      }
+    }
+    @if (story.name) {
+      <span class="name fw-semibold text-truncate" [title]="story.name">{{ story.name }}</span>
+    }
+    @if (story.estimate !== null) {
+      <span class="estimate fw-semibold tabular flex-shrink-0">{{ story.estimate }}</span>
+    }
+    @if (story.canSkip) {
+      <button type="button" class="btn btn-sm btn-link text-muted flex-shrink-0 skip" (click)="skip()" [title]="t('skipHint')">
+        <svg class="bi" width="1em" height="1em" fill="currentColor" aria-hidden="true"><use xlink:href="assets/bootstrap-icons.svg#skip-forward"/></svg>
+        {{ t('skip') }}
+      </button>
+    }
+  </div>
+}

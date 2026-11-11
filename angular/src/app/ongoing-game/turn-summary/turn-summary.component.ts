@@ -22,8 +22,12 @@ export class TurnSummaryComponent implements AfterViewInit, OnDestroy {
   displayCardValue = displayCardValue;
   Number = Number;
   round = Math.round;
+  /**
+   * Most-voted card first; on a tie, the highest card first. It must match the estimate the server records
+   * in the stories list (Game.__consensus_estimate), since the first card is the one highlighted.
+   */
   valueDescOrder = (a: KeyValue<string, number>, b: KeyValue<string, number>): number =>
-    a.value > b.value ? -1 : (b.value > a.value ? 1 : 0)
+    (b.value - a.value) || (Number(b.key) - Number(a.key))
 
   deck: Deck = decksDict['FIBONACCI'];
   average = 0;

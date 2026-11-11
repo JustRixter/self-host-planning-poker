@@ -1,6 +1,6 @@
-import os
-import tempfile
 import unittest
+
+from test.app_fixture import load_app
 
 
 class DisconnectTestCase(unittest.TestCase):
@@ -8,18 +8,7 @@ class DisconnectTestCase(unittest.TestCase):
 
     @classmethod
     def setUpClass(cls) -> None:
-        # app.py picks its database and its CORS settings when it is imported
-        os.environ['FLASK_DEBUG'] = '1'
-        cls.previous_cwd = os.getcwd()
-        cls.workdir = tempfile.TemporaryDirectory()
-        os.chdir(cls.workdir.name)
-        import app as flask_app
-        cls.flask_app = flask_app
-
-    @classmethod
-    def tearDownClass(cls) -> None:
-        os.chdir(cls.previous_cwd)
-        cls.workdir.cleanup()
+        cls.flask_app = load_app()
 
     def setUp(self) -> None:
         self.game_id = self.flask_app.gm.create('Disconnect test')

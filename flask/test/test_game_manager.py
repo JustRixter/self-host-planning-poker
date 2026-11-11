@@ -8,7 +8,7 @@ from gamestate.deck import Deck
 from gamestate.exceptions import GameDoesNotExistError, DeckDoesNotExistError, \
     GameNotOngoingError
 from gamestate.game_manager import GameManager
-from gamestate.models import StoredGame, database_proxy
+from gamestate.models import StoredGame, StoredStory, database_proxy, create_tables
 
 
 class GameManagerTestCase(unittest.TestCase):
@@ -18,7 +18,7 @@ class GameManagerTestCase(unittest.TestCase):
         database_proxy.initialize(test_db)
         if database_proxy.is_closed():
             database_proxy.connect()
-        StoredGame.create_table()
+        create_tables()
 
     def test_create(self):
         gm = GameManager()
@@ -91,7 +91,8 @@ class GameManagerTestCase(unittest.TestCase):
         StoredGame.create(uuid=game_id, name=name, deck=deck)
 
         gm = GameManager()
-        game_mock = Mock(**{'info.return_value': {'name': name, 'deck': deck}, 'state.return_value': {'foo': 'bar'}})
+        game_mock = Mock(**{'info.return_value': {'name': name, 'deck': deck}, 'state.return_value': {'foo': 'bar'},
+                            'stories.return_value': []})
         gm.games = {game_id: game_mock}
 
         with self.assertRaises(DeckDoesNotExistError) as ex1:
@@ -225,7 +226,8 @@ class GameManagerTestCase(unittest.TestCase):
 
     def test_reveal_cards(self):
         gm = GameManager()
-        game_mock = Mock(**{'state.return_value': "{'foo': 'bar'}", 'info.return_value': "{'fizz': 'buzz'}"})
+        game_mock = Mock(**{'state.return_value': "{'foo': 'bar'}", 'info.return_value': "{'fizz': 'buzz'}",
+                            'stories.return_value': []})
         gm.games = {'uuid1': game_mock}
 
         state, info = gm.reveal_cards("uuid1")
@@ -261,15 +263,69 @@ class GameManagerTestCase(unittest.TestCase):
         gm.pick_card(game_id, 'p1', 3)
         gm.pick_card(game_id, 'p2', 3)
         _, info = gm.reveal_cards(game_id)
-        self.assertEqual(info['history'], [{'id': 1, 'name': '', 'estimate': 3}])
+        votes = [{'player': 'Alice', 'card': 3}, {'player': 'Bob', 'card': 3}]
+        self.assertEqual(info['history'], [{'id': 1, 'name': '', 'ref': None, 'url': None, 'estimate': 3, 'votes': votes}])
         info = gm.update_story(game_id, 1, 'Checkout', 8)
-        self.assertEqual(info['history'], [{'id': 1, 'name': 'Checkout', 'estimate': 8}])
+        self.assertEqual(info['history'], [{'id': 1, 'name': 'Checkout', 'ref': None, 'url': None, 'estimate': 8,
+                                            'votes': votes}])
         self.assertEqual(info['total'], 8)
         info = gm.delete_story(game_id, 1)
         self.assertEqual(info['history'], [])
-        for action in (lambda: gm.update_story('unknown-game', 1, 'x'), lambda: gm.delete_story('unknown-game', 1)):
-            with self.assertRaises(GameNotOngoingError):
+        for action in (lambda: gm.update_story('unknown-game', 1, 'x'), lambda: gm.delete_story('unknown-game', 1),
+                       lambda: gm.update_story(str(uuid.uuid4()), 1, 'x')):
+            with self.assertRaises(GameDoesNotExistError):
                 action()
+
+    def test_stories_are_stored_and_survive_the_game_leaving_memory(self):
+        gm = GameManager()
+        game_id = gm.create('Stored')
+        gm.join_game(game_id, 'p1', 'Alice', False)
+        _, result = gm.add_to_backlog(game_id, [{'name': 'Login', 'ref': 'ABC-1', 'url': 'https://example.com/1'},
+                                                {'name': 'Export'}, {'name': 'Search'}])
+        self.assertEqual(result, {'added': [1, 2, 3], 'skipped': []})
+        gm.pick_card(game_id, 'p1', 5)
+        gm.reveal_cards(game_id)
+        gm.end_turn(game_id)
+        gm.move_story(game_id, 3, 1)
+        gm.leave_game(game_id, 'p1')
+        self.assertNotIn(game_id, gm.games)
+
+        # A new manager, as after a restart of the server
+        restarted = GameManager()
+        info, _ = restarted.join_game(game_id, 'p2', 'Bob', False)
+        self.assertEqual([story['name'] for story in info['backlog']], ['Search', 'Export'])
+        self.assertEqual(info['history'], [{'id': 1, 'name': 'Login', 'ref': 'ABC-1', 'url': 'https://example.com/1',
+                                            'estimate': 5, 'votes': [{'player': 'Alice', 'card': 5}]}])
+        self.assertEqual(info['current']['name'], 'Search')
+        # ids go on after the stored ones
+        _, result = restarted.add_to_backlog(game_id, [{'name': 'New'}])
+        self.assertEqual(result['added'], [4])
+
+    def test_stories_of_a_game_nobody_plays_can_be_prepared(self):
+        gm = GameManager()
+        game_id = gm.create('Tomorrow')
+        gm.games.clear()  # nobody joined, or the server restarted
+        info, _ = gm.add_to_backlog(game_id, [{'name': 'Login', 'ref': 'ABC-1'}])
+        self.assertEqual(info['current']['ref'], 'ABC-1')
+        self.assertNotIn(game_id, gm.games, 'a game nobody plays is not kept in memory')
+        self.assertEqual(len(gm.get_for_stories(game_id).get_backlog()), 1)
+        info = gm.clear_backlog(game_id)
+        self.assertEqual(info['backlog'], [])
+        self.assertEqual(StoredStory.select().where(StoredStory.game == game_id).count(), 0)
+        with self.assertRaises(GameDoesNotExistError):
+            gm.get_for_stories('not-a-uuid')
+
+    def test_changing_the_deck_clears_the_stored_estimates_but_not_the_backlog(self):
+        gm = GameManager()
+        game_id = gm.create('Deck')
+        gm.join_game(game_id, 'p1', 'Alice', False)
+        gm.add_to_backlog(game_id, [{'name': 'A'}, {'name': 'B'}])
+        gm.pick_card(game_id, 'p1', 5)
+        gm.reveal_cards(game_id)
+        gm.set_deck(game_id, 'POWERS')
+        stored = GameManager().get_for_stories(game_id)
+        self.assertEqual(stored.get_history(), [])
+        self.assertEqual([story['name'] for story in stored.get_backlog()], ['B'])
 
 
 if __name__ == '__main__':

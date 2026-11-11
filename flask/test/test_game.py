@@ -2,12 +2,17 @@ import unittest
 from unittest.mock import Mock
 
 from gamestate.deck import Deck
-from gamestate.exceptions import PlayerNotInGameError, InvalidCardValueError, StoryDoesNotExistError
+from gamestate.exceptions import PlayerNotInGameError, InvalidCardValueError, StoryDoesNotExistError, \
+    InvalidStoryError
 from gamestate.game import Game
 from gamestate.player import Player
 
 
-EMPTY_INFO = {'history': [], 'total': 0}
+EMPTY_INFO = {'history': [], 'total': 0, 'backlog': [], 'current': None}
+
+
+def estimated(story_id, estimate, name='', votes=None, ref=None, url=None):
+    return {'id': story_id, 'name': name, 'ref': ref, 'url': url, 'estimate': estimate, 'votes': votes or []}
 
 
 class GameTestCase(unittest.TestCase):
@@ -323,7 +328,8 @@ class GameTestCase(unittest.TestCase):
         game = self._game_with_votes(Deck.FIBONACCI, 5, 5, 8)
         self.assertEqual(game.get_history(), [])
         game.reveal_hands()
-        self.assertEqual(game.get_history(), [{'id': 1, 'name': '', 'estimate': 5}])
+        self.assertEqual(game.get_history(), [estimated(1, 5, votes=[
+            {'player': 'P2', 'card': 8}, {'player': 'P0', 'card': 5}, {'player': 'P1', 'card': 5}])])
         self.assertEqual(game.get_total(), 5)
 
     def test_revealing_twice_records_once(self):
@@ -382,10 +388,11 @@ class GameTestCase(unittest.TestCase):
             game.player_picks('p0', 5)
         game.update_story(1, name='  Renamed  ')
         game.update_story(2, estimate=13)
-        self.assertEqual(game.get_history(), [{'id': 1, 'name': 'Renamed', 'estimate': 5}, {'id': 2, 'name': '', 'estimate': 13}])
+        votes = [{'player': 'P0', 'card': 5}]
+        self.assertEqual(game.get_history(), [estimated(1, 5, 'Renamed', votes), estimated(2, 13, '', votes)])
         self.assertEqual(game.get_total(), 18)
         game.update_story(1, name='', estimate=8)
-        self.assertEqual(game.get_history()[0], {'id': 1, 'name': '', 'estimate': 8})
+        self.assertEqual(game.get_history()[0], estimated(1, 8, '', votes))
 
     def test_update_story_truncates_the_name(self):
         game = self._game_with_votes(Deck.FIBONACCI, 5)
@@ -399,9 +406,12 @@ class GameTestCase(unittest.TestCase):
         for story_id in (0, 2, -1, 'x', None, True):
             with self.assertRaises(StoryDoesNotExistError):
                 game.update_story(story_id, name='x')
-        with self.assertRaises(InvalidCardValueError):
-            game.update_story(1, estimate=4)
-        self.assertEqual(game.get_history(), [{'id': 1, 'name': '', 'estimate': 5}])
+        for estimate in (4, True, '5'):
+            with self.assertRaises(InvalidCardValueError):
+                game.update_story(1, estimate=estimate)
+        with self.assertRaises(InvalidStoryError):
+            game.update_story(1, name=42)
+        self.assertEqual(game.get_history(), [estimated(1, 5, votes=[{'player': 'P0', 'card': 5}])])
 
     def test_delete_story_keeps_the_ids_of_the_others(self):
         game = self._game_with_votes(Deck.FIBONACCI, 5)
@@ -427,6 +437,127 @@ class GameTestCase(unittest.TestCase):
         self.assertEqual(len(game.get_history()), 1)
         game.set_deck(Deck.POWERS)
         self.assertEqual(game.get_history(), [])
+
+    # Backlog
+
+    def test_reveal_estimates_the_next_story_of_the_backlog(self):
+        game = self._game_with_votes(Deck.FIBONACCI, 3, 5)
+        result = game.add_to_backlog([{'name': ' Login   timeout ', 'ref': 'ABC-1', 'url': 'https://example.com/1'},
+                                      {'name': 'Export'}])
+        self.assertEqual(result, {'added': [1, 2], 'skipped': []})
+        self.assertEqual(game.get_current_story(), {'id': 1, 'name': 'Login timeout', 'ref': 'ABC-1',
+                                                    'url': 'https://example.com/1'})
+        game.reveal_hands()
+        # the story estimated by the turn stays the current one until the next turn
+        self.assertEqual(game.get_current_story()['estimate'], 5)
+        self.assertEqual(game.get_history(), [estimated(1, 5, 'Login timeout', [
+            {'player': 'P1', 'card': 5}, {'player': 'P0', 'card': 3}], 'ABC-1', 'https://example.com/1')])
+        self.assertEqual([story['name'] for story in game.get_backlog()], ['Export'])
+        game.end_turn()
+        self.assertEqual(game.get_current_story()['name'], 'Export')
+
+    def test_reveal_without_votes_keeps_the_story_in_the_backlog(self):
+        game = self._game_with_votes(Deck.FIBONACCI, None)
+        game.add_to_backlog([{'name': 'A'}])
+        game.reveal_hands()
+        self.assertEqual(game.get_history(), [])
+        self.assertEqual(game.get_current_story()['name'], 'A')
+
+    def test_reveal_with_an_empty_backlog_records_an_unnamed_story(self):
+        game = self._game_with_votes(Deck.FIBONACCI, 8)
+        game.add_to_backlog([{'name': 'A'}])
+        for _ in range(2):
+            game.player_picks('p0', 8)
+            game.reveal_hands()
+            game.end_turn()
+        self.assertEqual([(story['id'], story['name']) for story in game.get_history()], [(1, 'A'), (2, '')])
+        self.assertIsNone(game.get_current_story())
+
+    def test_add_to_backlog_skips_known_refs_and_validates_everything_first(self):
+        game = Game('Backlog')
+        game.add_to_backlog([{'name': 'A', 'ref': 'ABC-1'}])
+        result = game.add_to_backlog([{'name': 'A again', 'ref': 'abc-1'}, {'name': 'B', 'ref': 'ABC-2'},
+                                      {'name': 'B twice', 'ref': 'ABC-2'}, {'ref': 'ABC-3'}])
+        self.assertEqual(result['added'], [2, 3])
+        self.assertEqual([skipped['ref'] for skipped in result['skipped']], ['abc-1', 'ABC-2'])
+        for invalid in ([{'name': 'ok'}, {'name': ''}], [{'name': 'x', 'url': 'javascript:alert(1)'}],
+                        [{'name': 'x', 'url': 'ftp://example.com'}], [{'name': 'x', 'ref': 5}], ['x'], 'x',
+                        [{'name': 7}]):
+            with self.assertRaises(InvalidStoryError):
+                game.add_to_backlog(invalid)
+        self.assertEqual(len(game.get_backlog()), 3)
+        long_name = game.add_to_backlog([{'name': 'x' * 500, 'ref': 'y' * 500}])['added'][0]
+        story = game.get_backlog()[-1]
+        self.assertEqual((story['id'], len(story['name']), len(story['ref'])), (long_name, 100, 50))
+
+    def test_backlog_size_is_limited(self):
+        game = Game('Backlog')
+        result = game.add_to_backlog([{'name': f'S{i}'} for i in range(205)])
+        self.assertEqual(len(result['added']), 200)
+        self.assertEqual(len(result['skipped']), 5)
+        self.assertEqual(len(game.get_backlog()), 200)
+
+    def test_move_skip_and_clear_the_backlog(self):
+        game = Game('Backlog')
+        game.add_to_backlog([{'name': name} for name in 'ABCD'])
+        names = lambda: ''.join(story['name'] for story in game.get_backlog())
+        game.move_story(4, 1)
+        self.assertEqual(names(), 'DABC')
+        game.move_story(4, 99)
+        self.assertEqual(names(), 'ABCD')
+        game.move_story(1, 0)
+        self.assertEqual(names(), 'ABCD')
+        game.skip_story()
+        self.assertEqual(names(), 'BCDA')
+        for story_id, position in ((99, 1), (1, 'x'), (1, True)):
+            with self.assertRaises((StoryDoesNotExistError, InvalidStoryError)):
+                game.move_story(story_id, position)
+        game.clear_backlog()
+        self.assertEqual(game.get_backlog(), [])
+        game.skip_story()  # nothing to skip
+
+    def test_requeue_puts_an_estimated_story_back_on_top(self):
+        game = self._game_with_votes(Deck.FIBONACCI, 13)
+        game.add_to_backlog([{'name': 'Big', 'ref': 'ABC-9'}, {'name': 'Next'}])
+        game.reveal_hands()
+        game.requeue_story(1)
+        self.assertEqual(game.get_history(), [])
+        self.assertEqual(game.get_backlog()[0], {'id': 1, 'name': 'Big', 'ref': 'ABC-9', 'url': None})
+        self.assertEqual(game.get_current_story()['id'], 1)
+        with self.assertRaises(InvalidStoryError):
+            game.requeue_story(1)  # not estimated anymore
+        with self.assertRaises(InvalidStoryError):
+            game.update_story(1, estimate=5)  # a story of the backlog has no estimate
+        game.end_turn()
+        game.player_picks('p0', 8)
+        game.reveal_hands()
+        self.assertEqual(game.get_history()[0]['estimate'], 8)
+
+    def test_delete_a_story_of_the_backlog(self):
+        game = Game('Backlog')
+        game.add_to_backlog([{'name': 'A'}, {'name': 'B'}])
+        game.update_story(2, name='Renamed')
+        game.delete_story(1)
+        self.assertEqual(game.get_backlog(), [{'id': 2, 'name': 'Renamed', 'ref': None, 'url': None}])
+
+    def test_deck_change_keeps_the_backlog(self):
+        game = self._game_with_votes(Deck.FIBONACCI, 5)
+        game.add_to_backlog([{'name': 'A'}, {'name': 'B'}])
+        game.reveal_hands()
+        game.set_deck(Deck.T_SHIRTS)
+        self.assertEqual(game.get_history(), [])
+        self.assertEqual([story['name'] for story in game.get_backlog()], ['B'])
+        self.assertEqual(game.get_current_story()['name'], 'B')
+
+    def test_stories_can_be_restored(self):
+        game = self._game_with_votes(Deck.FIBONACCI, 5)
+        game.add_to_backlog([{'name': 'A', 'ref': 'R-1'}, {'name': 'B'}, {'name': 'C'}])
+        game.reveal_hands()
+        game.end_turn()
+        restored = Game('Restored', Deck.FIBONACCI, game.stories())
+        self.assertEqual(restored.get_history(), game.get_history())
+        self.assertEqual(restored.get_backlog(), game.get_backlog())
+        self.assertEqual(restored.add_to_backlog([{'name': 'D'}])['added'], [4])
 
 
 if __name__ == '__main__':
