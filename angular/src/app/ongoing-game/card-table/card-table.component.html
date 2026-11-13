@@ -1,3 +1,4 @@
+<canvas #glow class="table-glow" aria-hidden="true"></canvas>
 <div #seats class="container flex-grow-1 d-flex flex-wrap align-items-center table-seats" [class.justify-content-evenly]="!compact" [class.justify-content-center]="compact" [class.compact]="compact">
   @for (player of (state | keyvalue); track player.key) {
     <shpp-player-hand

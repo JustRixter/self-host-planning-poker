@@ -7,6 +7,7 @@ import { DeparturesComponent } from '../departures/departures.component';
 import { PlayerHandComponent } from './player-hand/player-hand.component';
 import { KeyValuePipe } from '@angular/common';
 import { TranslocoDirective } from '@jsverse/transloco';
+import { drawTableGlow } from './table-glow';
 
 /** Rough footprint of a full-size hand (card + name + margins), in px */
 const HAND_WIDTH = { narrow: 100, wide: 140 };
@@ -36,13 +37,17 @@ export class CardTableComponent implements AfterViewInit, OnDestroy {
   deck?: Deck;
 
   @ViewChild('seats') private seats?: ElementRef<HTMLElement>;
+  @ViewChild('glow') private glow?: ElementRef<HTMLCanvasElement>;
   private resizeObserver?: ResizeObserver;
+  private glowResizeObserver?: ResizeObserver;
+  private themeObserver?: MutationObserver;
+  private glowFrame?: number;
 
   private stateSubscription: Subscription;
   private revealedSubscription: Subscription;
   private deckSubscription: Subscription;
 
-  constructor(private currentGameService: CurrentGameService, private zone: NgZone) {
+  constructor(private currentGameService: CurrentGameService, private zone: NgZone, private host: ElementRef<HTMLElement>) {
     this.stateSubscription = this.currentGameService.state$
     .subscribe((state: GameState) => {
       this.state = state;
@@ -68,6 +73,31 @@ export class CardTableComponent implements AfterViewInit, OnDestroy {
       });
       this.resizeObserver.observe(this.seats.nativeElement);
     }
+    this.watchGlow();
+  }
+
+  /** Paints the light on the table again whenever its size or the theme changes */
+  private watchGlow(): void {
+    const canvas = this.glow?.nativeElement;
+    if (!canvas || typeof ResizeObserver === 'undefined' || typeof MutationObserver === 'undefined') {
+      return;
+    }
+    this.zone.runOutsideAngular(() => {
+      // At most once per frame, however many changes arrive
+      const redraw = () => {
+        if (this.glowFrame === undefined) {
+          this.glowFrame = requestAnimationFrame(() => {
+            this.glowFrame = undefined;
+            drawTableGlow(canvas, this.host.nativeElement);
+          });
+        }
+      };
+      this.glowResizeObserver = new ResizeObserver(redraw);
+      this.glowResizeObserver.observe(canvas);
+      // The theme is switched with an attribute on <html>; overrides may also use a class or inline style
+      this.themeObserver = new MutationObserver(redraw);
+      this.themeObserver.observe(document.documentElement, { attributeFilter: ['data-bs-theme', 'class', 'style'] });
+    });
   }
 
   @HostListener('window:resize')
@@ -99,6 +129,11 @@ export class CardTableComponent implements AfterViewInit, OnDestroy {
 
   ngOnDestroy(): void {
     this.resizeObserver?.disconnect();
+    this.glowResizeObserver?.disconnect();
+    this.themeObserver?.disconnect();
+    if (this.glowFrame !== undefined) {
+      cancelAnimationFrame(this.glowFrame);
+    }
     this.stateSubscription.unsubscribe();
     this.revealedSubscription.unsubscribe();
     this.deckSubscription.unsubscribe();
