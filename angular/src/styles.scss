@@ -38,8 +38,6 @@
   --app-surface: #fcfcfd;
   --app-card-face: #fcfcfd;
   --app-table-glow: rgb(4 120 87 / .06);
-  // On a light background the rings are not visible, and a grey grain would only dull the light
-  --app-table-grain: 0;
   --app-card-back: #047857;
   --app-shadow: 0 1px 2px rgb(16 42 32 / .06), 0 8px 24px -8px rgb(16 42 32 / .12);
   --app-shadow-lift: 0 2px 4px rgb(16 42 32 / .08), 0 14px 28px -10px rgb(16 42 32 / .22);
@@ -70,7 +68,6 @@
   --app-surface: #1c1f26;
   --app-card-face: #282c35;
   --app-table-glow: rgb(52 211 153 / .09);
-  --app-table-grain: .03;
   // The back of the cards is a deeper green than the accent: the accent is too bright on large surfaces
   --app-card-back: #137a5d;
   --app-shadow: 0 1px 2px rgb(0 0 0 / .35), 0 8px 24px -8px rgb(0 0 0 / .45);
