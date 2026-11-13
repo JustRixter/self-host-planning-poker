@@ -2,8 +2,31 @@
   position: relative;
   display: flex;
   flex-direction: column;
-  // A soft light on the table: it gives the cards something to stand out from
-  background: radial-gradient(ellipse 65% 75% at 50% 42%, var(--app-table-glow), transparent 72%);
+  isolation: isolate;
+  // A soft light on the table: it gives the cards something to stand out from.
+  // The extra stops ease the fade out, so the edge of the light has no visible ring
+  background: radial-gradient(
+    ellipse 65% 75% at 50% 42%,
+    var(--app-table-glow),
+    color-mix(in srgb, var(--app-table-glow) 85%, transparent) 18%,
+    color-mix(in srgb, var(--app-table-glow) 55%, transparent) 36%,
+    color-mix(in srgb, var(--app-table-glow) 25%, transparent) 54%,
+    color-mix(in srgb, var(--app-table-glow) 7%, transparent) 66%,
+    transparent 72%
+  );
+
+  // The light is so faint that it spans only a few shades, and Firefox does not dither gradients
+  // as Chrome does, so the shades show as rings. A fine grain over the light blends them together
+  &::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    z-index: -1;
+    pointer-events: none;
+    opacity: var(--app-table-grain);
+    background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='g'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='1 0 0 0 -.5 1 0 0 0 -.5 1 0 0 0 -.5 0 0 0 0 1'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23g)'/%3E%3C/svg%3E");
+    mask-image: radial-gradient(ellipse 65% 75% at 50% 42%, black, transparent 72%);
+  }
 }
 
 // Below the buttons on small screens; on wide ones, in the free space to the right of the buttons
