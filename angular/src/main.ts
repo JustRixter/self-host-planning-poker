@@ -57,7 +57,8 @@ bootstrapApplication(AppComponent, {
       provideTranslocoLocale({
         langToLocaleMapping: {
           en: 'en-US',
-          fr: 'fr-FR'
+          fr: 'fr-FR',
+          uk: 'uk-UA'
         }
       }),
       provideRouter(routes),
